@@ -103,7 +103,14 @@ async def run_property_recommendation_system(
     for msg in messages:
         source = getattr(msg, 'source', 'unknown')
         content = getattr(msg, 'content', '')
-        
+
+        # content nem sempre é string: eventos de tool call (ToolCallRequestEvent/
+        # ToolCallExecutionEvent) têm content como lista de FunctionCall/
+        # FunctionExecutionResult. Normaliza para string para results[agent] ser
+        # sempre List[str], como o resto do código (Streamlit antigo, schemas da API) assume.
+        if not isinstance(content, str):
+            content = str(content)
+
         # Normalizar nomes dos agentes
         source_lower = source.lower()
         

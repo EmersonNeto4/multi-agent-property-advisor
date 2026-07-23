@@ -203,6 +203,62 @@ que a função faz); o "porquê" de cada decisão fica documentado aqui.
   "/" não sombreia as rotas /api/* registadas antes dele).
 - Testes correram com uvicorn no ambiente conda "dei" (onde já estavam
   instaladas as dependências do projeto, incluindo fastapi/uvicorn).
-- Teste end-to-end com uma query real (a chamar Groq + Idealista de
-  facto, com o frontend a fazer o pedido) ainda por fazer — próximo passo
-  do plano original.
+- Teste end-to-end com uma query real ("Quero um apartamento T2 em
+  Lisboa, perto do Hospital Santa Maria, com orçamento máximo de 400 mil
+  euros."), a chamar Groq + Idealista de facto via POST /api/recommend:
+    * 1ª tentativa: 500 Internal Server Error. Bug real encontrado (não
+      hipotético) — ver secção 9.
+    * 2ª tentativa (depois da correção): 200 OK, resposta bem formada nos
+      5 campos de agente, stop_reason "Text 'TERMINATE' mentioned",
+      needs_more_info=False.
+    * O Property Agent não encontrou imóveis porque a API do Idealista
+      devolveu 406 Not Acceptable no pedido de OAuth token
+      (https://api.idealista.com/oauth/token) — falha externa, não
+      relacionada com a Fase 1 (ver secção 9). O sistema tratou isto
+      corretamente: 0 imóveis -> KNN vazio -> Evaluator respondeu com a
+      mensagem de fallback já prevista em agents/evaluator.py
+      ("Não foram encontradas propriedades que satisfaçam os critérios...").
+
+
+9. Bug encontrado e corrigido durante o teste end-to-end
+--------------------------------------------------------------
+- Sintoma: POST /api/recommend com uma query real devolvia 500, com
+  pydantic_core.ValidationError em AgentOutput (messages.0, messages.1:
+  "Input should be a valid string").
+- Causa: em main.py, o loop que constrói `results[agente]` fazia
+  `results[agente].append(content)` usando `content = getattr(msg,
+  'content', '')` sem garantir que é string. Para mensagens do tipo
+  ToolCallRequestEvent/ToolCallExecutionEvent (chamadas a tools pelos
+  agentes), `content` é uma LISTA de objetos FunctionCall/
+  FunctionExecutionResult, não uma string.
+- Porque é que isto só apareceu agora: o Streamlit original (app.py) e o
+  main() de teste só liam `results[agente][-1]` (a ÚLTIMA mensagem), que
+  por acaso é quase sempre uma ToolCallSummaryMessage ou TextMessage com
+  content string — nunca expunham a lista completa. AgentOutput.messages
+  (decisão tomada na secção 5, de expor o trace completo) passou a
+  serializar TODAS as mensagens, incluindo as intermédias com content
+  não-string, e o Pydantic rejeitou-as ao validar `List[str]`.
+- Correção: em main.py, antes de fazer append, `content` é convertido
+  para string com `str(content)` sempre que não for já uma string. Isto
+  aplica-se a TODOS os consumidores de `results` (API e o main() de
+  teste standalone), não só à API — mantém o invariante "results[agente]
+  é sempre List[str]" que o resto do código (schemas, Streamlit
+  original) já assumia implicitamente.
+- Lição: o teste end-to-end com uma query real (não só casos vazios/
+  erro) era necessário precisamente para apanhar isto — a validação de
+  400 e o /api/health não exercitavam este caminho de código.
+
+
+10. Falha externa observada (fora do âmbito da Fase 1)
+------------------------------------------------------------
+- A chamada da Property Agent à API do Idealista falhou com
+  "406 Not Acceptable" no endpoint de obtenção de OAuth token
+  (tools/idealista_oauth.py -> https://api.idealista.com/oauth/token).
+  Isto é uma falha nas credenciais/configuração da API do Idealista (ou
+  possivelmente a própria API), não relacionada com a migração para
+  FastAPI — o código de tratamento de erro já existente em
+  property_search.py/evaluator.py absorveu a falha corretamente (devolve
+  lista vazia em vez de rebentar), mas significa que, no estado atual,
+  o sistema não vai encontrar imóveis reais até isso ser investigado.
+  Não foi corrigido nesta fase por estar fora do âmbito (migração
+  Streamlit -> FastAPI), mas fica registado para investigação futura.
