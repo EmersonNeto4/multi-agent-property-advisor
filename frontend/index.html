@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema Multi-Agente de Recomendação de Imóveis</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <h1>🏠 Recomendação de Imóveis</h1>
+      <p class="subtitle">Sistema Multi-Agente (AutoGen) com CSP, A* e KNN</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="query-card" aria-label="Pesquisa">
+      <label for="query-input">Descreve o imóvel que procuras</label>
+      <textarea
+        id="query-input"
+        placeholder="Ex: Quero um apartamento T2 em Lisboa, perto do Hospital Santa Maria, com orçamento máximo de 400 mil euros."
+        rows="4"
+      ></textarea>
+
+      <div class="query-actions">
+        <label class="location-hint" for="location-suggestions">
+          Localizações disponíveis (sugestão, opcional)
+          <input
+            id="location-suggestions"
+            type="text"
+            list="locations-datalist"
+            placeholder="Escreve para ver sugestões..."
+            autocomplete="off"
+          />
+          <datalist id="locations-datalist"></datalist>
+        </label>
+
+        <button id="submit-btn" type="button">🚀 Iniciar Pesquisa</button>
+      </div>
+
+      <p id="input-error" class="error-text" hidden></p>
+    </section>
+
+    <section id="loading" class="loading-card" hidden>
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Sistema multi-agente em execução — Planner → Location → Property → Analyst → Evaluator...</p>
+    </section>
+
+    <section id="api-error" class="banner banner-error" hidden></section>
+
+    <section id="needs-info" class="banner banner-info" hidden>
+      <h2>ℹ️ Preciso de mais informação</h2>
+      <p id="needs-info-message"></p>
+    </section>
+
+    <section id="results" class="results-card" hidden>
+      <div class="tabs" role="tablist" aria-label="Secções de resultados">
+        <button class="tab-btn active" data-tab="evaluator" role="tab" aria-selected="true">🎯 Recomendações Finais</button>
+        <button class="tab-btn" data-tab="analyst" role="tab" aria-selected="false">📊 Análise KNN</button>
+        <button class="tab-btn" data-tab="property" role="tab" aria-selected="false">🏠 Imóveis Encontrados</button>
+        <button class="tab-btn" data-tab="location" role="tab" aria-selected="false">📍 Localizações</button>
+        <button class="tab-btn" data-tab="planner" role="tab" aria-selected="false">🧠 Preferências</button>
+      </div>
+
+      <div class="tab-panels">
+        <article class="tab-panel active" data-panel="evaluator"></article>
+        <article class="tab-panel" data-panel="analyst"></article>
+        <article class="tab-panel" data-panel="property"></article>
+        <article class="tab-panel" data-panel="location"></article>
+        <article class="tab-panel" data-panel="planner"></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Powered by AutoGen + Llama 3.3 + Idealista API — Emerson Neto &amp; Gonçalo Bento, IARP 2025/2026</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
