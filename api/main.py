@@ -5,6 +5,7 @@ from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from openai import APIConnectionError, APIError, APITimeoutError, RateLimitError
 
 from api.dependencies import get_model_client, is_model_client_ready, lifespan
@@ -90,3 +91,8 @@ async def locations():
     except Exception:
         logger.exception("Erro ao carregar o dataset de localizações")
         raise HTTPException(status_code=500, detail="Erro ao carregar as localizações.")
+
+
+# Montado por último para não sombrear as rotas /api/*: pedidos a caminhos
+# não reconhecidos acima (incluindo "/") são servidos a partir de frontend/.
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")

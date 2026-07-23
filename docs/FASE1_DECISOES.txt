@@ -145,7 +145,51 @@ que a função faz); o "porquê" de cada decisão fica documentado aqui.
     (ex: JSON corrompido) é tratada como erro de servidor genérico (500).
 
 
-7. Testes manuais efetuados
+7. frontend/ — index.html, style.css, app.js
+------------------------------------------------
+- Sem frameworks/build (conforme pedido) — HTML/CSS/JS puro, servido pelo
+  FastAPI via StaticFiles(directory="frontend", html=True), montado em "/"
+  no FIM de api/main.py (depois de todas as rotas /api/*), para não
+  sombrear essas rotas explícitas.
+- app.js usa caminhos relativos ("/api/recommend", "/api/locations") em
+  vez de um URL absoluto (ex: http://localhost:8000/...). Isto assume o
+  modo de serving recomendado pelo enunciado da Fase 1: frontend e API no
+  mesmo processo/porta. Se o frontend for servido à parte (ex: Live Server
+  em localhost:5500, cenário para o qual o CORS foi configurado em
+  api/main.py), os caminhos relativos passam a apontar para o próprio
+  servidor de ficheiros estáticos, não para a API — nesse caso seria
+  preciso trocar para um URL absoluto. Não implementado porque o modo
+  "mesma porta" é o indicado como principal.
+- Apenas o "Texto Livre" do Streamlit original foi replicado (textarea +
+  botão). O separador "Formulário" (inputs estruturados: localização,
+  quartos, budget, etc.) não foi replicado nesta fase — não fazia parte
+  dos requisitos explícitos da Fase 1 (só "equivalente ao Texto Livre") e
+  seria complexidade extra sem valor imediato.
+- GET /api/locations é usado para preencher um <datalist> associado a um
+  campo de sugestão de localização, separado da textarea principal:
+  escolher uma sugestão apenas insere o nome no texto livre, não substitui
+  o campo. Assim aproveita-se o endpoint para autocomplete (como previsto)
+  sem reintroduzir um formulário estruturado.
+- Texto dos agentes (final e histórico) é primeiro escapado (via
+  textContent -> innerHTML de um elemento auxiliar, evita XSS) e só depois
+  passa por um formatador "markdown-lite" próprio (regex) que só entende
+  **negrito** e novas linhas. Não foi usada nenhuma biblioteca de markdown
+  para não introduzir uma dependência de frontend nesta fase; o resultado
+  dos agentes é maioritariamente texto/bullets simples, não markdown rico.
+- AgentOutput.messages só é mostrado (via <details>/<summary> colapsável)
+  quando tem mais do que 1 mensagem — evita um "Ver histórico completo"
+  redundante quando só há a mensagem final.
+- needs_more_info é tratado como um estado à parte dos resultados: mostra
+  um banner informativo com a pergunta do Planner e NÃO mostra a secção de
+  tabs (os outros agentes não correram, não faz sentido mostrar tabs
+  vazias).
+- Erros de rede (fetch falhou, ex: API não está a correr) são apanhados
+  separadamente de erros HTTP (resposta não-OK) para se poder distinguir
+  "servidor incontactável" de "servidor respondeu com erro" na mensagem
+  mostrada ao utilizador.
+
+
+8. Testes manuais efetuados
 -------------------------------
 - GET /api/health -> 200, {"status":"ok","model_client_ready":true}
   (confirma que o lifespan cria o model_client corretamente).
@@ -154,8 +198,11 @@ que a função faz); o "porquê" de cada decisão fica documentado aqui.
 - GET /api/locations -> 200, lista com 42 localizações, estrutura
   confirmada (id, name, type, nuts_ii, nuts_iii, population, coordinates,
   characteristics).
+- Com o StaticFiles montado: GET /, /app.js, /style.css -> 200, e
+  /api/health continua a responder corretamente (confirma que o mount em
+  "/" não sombreia as rotas /api/* registadas antes dele).
 - Testes correram com uvicorn no ambiente conda "dei" (onde já estavam
   instaladas as dependências do projeto, incluindo fastapi/uvicorn).
 - Teste end-to-end com uma query real (a chamar Groq + Idealista de
-  facto) fica para depois do frontend estar ligado, conforme o plano
-  original combinado.
+  facto, com o frontend a fazer o pedido) ainda por fazer — próximo passo
+  do plano original.
