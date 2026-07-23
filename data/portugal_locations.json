@@ -1,0 +1,556 @@
+{
+  "metadata": {
+    "source": "Instituto Nacional de Estatística (INE) - Portugal",
+    "last_updated": "2024-11-04",
+    "description": "Principais localizações de Portugal baseadas em NUTS II, NUTS III e municípios relevantes",
+    "total_locations": 43
+  },
+  "locations": [
+    {
+      "id": "pt_norte_porto",
+      "name": "Porto",
+      "type": "municipality",
+      "nuts_ii": "Norte",
+      "nuts_iii": "Área Metropolitana do Porto",
+      "population": 237591,
+      "coordinates": {
+        "latitude": 41.1579,
+        "longitude": -8.6291
+      },
+      "characteristics": ["urbano", "vibrante", "histórico", "costeiro"]
+    },
+    {
+      "id": "pt_norte_braga",
+      "name": "Braga",
+      "type": "municipality",
+      "nuts_ii": "Norte",
+      "nuts_iii": "Cávado",
+      "population": 193333,
+      "coordinates": {
+        "latitude": 41.5454,
+        "longitude": -8.4265
+      },
+      "characteristics": ["urbano", "histórico", "jovem", "universitário"]
+    },
+    {
+      "id": "pt_norte_guimaraes",
+      "name": "Guimarães",
+      "type": "municipality",
+      "nuts_ii": "Norte",
+      "nuts_iii": "Ave",
+      "population": 158124,
+      "coordinates": {
+        "latitude": 41.4416,
+        "longitude": -8.2918
+      },
+      "characteristics": ["histórico", "cultural", "tranquilo"]
+    },
+    {
+      "id": "pt_norte_viana_castelo",
+      "name": "Viana do Castelo",
+      "type": "municipality",
+      "nuts_ii": "Norte",
+      "nuts_iii": "Alto Minho",
+      "population": 88631,
+      "coordinates": {
+        "latitude": 41.6938,
+        "longitude": -8.8344
+      },
+      "characteristics": ["costeiro", "tranquilo", "natureza"]
+    },
+    {
+      "id": "pt_centro_coimbra",
+      "name": "Coimbra",
+      "type": "municipality",
+      "nuts_ii": "Centro",
+      "nuts_iii": "Região de Coimbra",
+      "population": 143396,
+      "coordinates": {
+        "latitude": 40.2033,
+        "longitude": -8.4103
+      },
+      "characteristics": ["universitário", "histórico", "cultural", "jovem"]
+    },
+    {
+      "id": "pt_centro_aveiro",
+      "name": "Aveiro",
+      "type": "municipality",
+      "nuts_ii": "Centro",
+      "nuts_iii": "Região de Aveiro",
+      "population": 78450,
+      "coordinates": {
+        "latitude": 40.6443,
+        "longitude": -8.6455
+      },
+      "characteristics": ["costeiro", "tranquilo", "canais", "universitário"]
+    },
+    {
+      "id": "pt_centro_viseu",
+      "name": "Viseu",
+      "type": "municipality",
+      "nuts_ii": "Centro",
+      "nuts_iii": "Viseu Dão Lafões",
+      "population": 99593,
+      "coordinates": {
+        "latitude": 40.6566,
+        "longitude": -7.9126
+      },
+      "characteristics": ["tranquilo", "interior", "familiar"]
+    },
+    {
+      "id": "pt_centro_leiria",
+      "name": "Leiria",
+      "type": "municipality",
+      "nuts_ii": "Centro",
+      "nuts_iii": "Região de Leiria",
+      "population": 128640,
+      "coordinates": {
+        "latitude": 39.7437,
+        "longitude": -8.8071
+      },
+      "characteristics": ["urbano", "comercial", "crescimento"]
+    },
+    {
+      "id": "pt_centro_castelo_branco",
+      "name": "Castelo Branco",
+      "type": "municipality",
+      "nuts_ii": "Centro",
+      "nuts_iii": "Beira Baixa",
+      "population": 56109,
+      "coordinates": {
+        "latitude": 39.8197,
+        "longitude": -7.4910
+      },
+      "characteristics": ["tranquilo", "interior", "natureza"]
+    },
+    {
+      "id": "pt_lisboa_lisboa",
+      "name": "Lisboa",
+      "type": "municipality",
+      "nuts_ii": "Área Metropolitana de Lisboa",
+      "nuts_iii": "Área Metropolitana de Lisboa",
+      "population": 505526,
+      "coordinates": {
+        "latitude": 38.7223,
+        "longitude": -9.1393
+      },
+      "characteristics": ["capital", "urbano", "vibrante", "cosmopolita", "costeiro"]
+    },
+    {
+      "id": "pt_lisboa_cascais",
+      "name": "Cascais",
+      "type": "municipality",
+      "nuts_ii": "Área Metropolitana de Lisboa",
+      "nuts_iii": "Área Metropolitana de Lisboa",
+      "population": 206479,
+      "coordinates": {
+        "latitude": 38.6979,
+        "longitude": -9.4215
+      },
+      "characteristics": ["costeiro", "praia", "luxo", "turístico"]
+    },
+    {
+      "id": "pt_lisboa_sintra",
+      "name": "Sintra",
+      "type": "municipality",
+      "nuts_ii": "Área Metropolitana de Lisboa",
+      "nuts_iii": "Área Metropolitana de Lisboa",
+      "population": 377835,
+      "coordinates": {
+        "latitude": 38.7999,
+        "longitude": -9.3775
+      },
+      "characteristics": ["histórico", "natureza", "turístico", "montanha"]
+    },
+    {
+      "id": "pt_lisboa_almada",
+      "name": "Almada",
+      "type": "municipality",
+      "nuts_ii": "Área Metropolitana de Lisboa",
+      "nuts_iii": "Área Metropolitana de Lisboa",
+      "population": 174030,
+      "coordinates": {
+        "latitude": 38.6789,
+        "longitude": -9.1567
+      },
+      "characteristics": ["urbano", "costeiro", "residencial"]
+    },
+    {
+      "id": "pt_lisboa_setubal",
+      "name": "Setúbal",
+      "type": "municipality",
+      "nuts_ii": "Área Metropolitana de Lisboa",
+      "nuts_iii": "Área Metropolitana de Lisboa",
+      "population": 123519,
+      "coordinates": {
+        "latitude": 38.5245,
+        "longitude": -8.8937
+      },
+      "characteristics": ["costeiro", "industrial", "praia", "natureza"]
+    },
+    {
+      "id": "pt_lisboa_odivelas",
+      "name": "Odivelas",
+      "type": "municipality",
+      "nuts_ii": "Área Metropolitana de Lisboa",
+      "nuts_iii": "Área Metropolitana de Lisboa",
+      "population": 144549,
+      "coordinates": {
+        "latitude": 38.7943,
+        "longitude": -9.1834
+      },
+      "characteristics": ["residencial", "urbano", "familiar"]
+    },
+    {
+      "id": "pt_alentejo_evora",
+      "name": "Évora",
+      "type": "municipality",
+      "nuts_ii": "Alentejo",
+      "nuts_iii": "Alentejo Central",
+      "population": 56596,
+      "coordinates": {
+        "latitude": 38.5714,
+        "longitude": -7.9087
+      },
+      "characteristics": ["histórico", "patrimônio", "tranquilo", "cultural"]
+    },
+    {
+      "id": "pt_alentejo_beja",
+      "name": "Beja",
+      "type": "municipality",
+      "nuts_ii": "Alentejo",
+      "nuts_iii": "Baixo Alentejo",
+      "population": 35854,
+      "coordinates": {
+        "latitude": 38.0151,
+        "longitude": -7.8632
+      },
+      "characteristics": ["tranquilo", "rural", "quente"]
+    },
+    {
+      "id": "pt_alentejo_portalegre",
+      "name": "Portalegre",
+      "type": "municipality",
+      "nuts_ii": "Alentejo",
+      "nuts_iii": "Alto Alentejo",
+      "population": 24930,
+      "coordinates": {
+        "latitude": 39.2968,
+        "longitude": -7.4283
+      },
+      "characteristics": ["tranquilo", "montanha", "natureza"]
+    },
+    {
+      "id": "pt_algarve_faro",
+      "name": "Faro",
+      "type": "municipality",
+      "nuts_ii": "Algarve",
+      "nuts_iii": "Algarve",
+      "population": 64560,
+      "coordinates": {
+        "latitude": 37.0194,
+        "longitude": -7.9322
+      },
+      "characteristics": ["costeiro", "turístico", "praia", "sol", "vibrante"]
+    },
+    {
+      "id": "pt_algarve_portimao",
+      "name": "Portimão",
+      "type": "municipality",
+      "nuts_ii": "Algarve",
+      "nuts_iii": "Algarve",
+      "population": 55614,
+      "coordinates": {
+        "latitude": 37.1390,
+        "longitude": -8.5370
+      },
+      "characteristics": ["costeiro", "turístico", "praia", "vibrante"]
+    },
+    {
+      "id": "pt_algarve_albufeira",
+      "name": "Albufeira",
+      "type": "municipality",
+      "nuts_ii": "Algarve",
+      "nuts_iii": "Algarve",
+      "population": 40828,
+      "coordinates": {
+        "latitude": 37.0887,
+        "longitude": -8.2507
+      },
+      "characteristics": ["turístico", "praia", "vibrante", "vida noturna"]
+    },
+    {
+      "id": "pt_algarve_lagos",
+      "name": "Lagos",
+      "type": "municipality",
+      "nuts_ii": "Algarve",
+      "nuts_iii": "Algarve",
+      "population": 31049,
+      "coordinates": {
+        "latitude": 37.1022,
+        "longitude": -8.6734
+      },
+      "characteristics": ["costeiro", "histórico", "praia", "turístico"]
+    },
+    {
+      "id": "pt_algarve_tavira",
+      "name": "Tavira",
+      "type": "municipality",
+      "nuts_ii": "Algarve",
+      "nuts_iii": "Algarve",
+      "population": 26167,
+      "coordinates": {
+        "latitude": 37.1267,
+        "longitude": -7.6487
+      },
+      "characteristics": ["tranquilo", "histórico", "costeiro", "autêntico"]
+    },
+    {
+      "id": "pt_norte_vila_nova_gaia",
+      "name": "Vila Nova de Gaia",
+      "type": "municipality",
+      "nuts_ii": "Norte",
+      "nuts_iii": "Área Metropolitana do Porto",
+      "population": 302295,
+      "coordinates": {
+        "latitude": 41.1239,
+        "longitude": -8.6109
+      },
+      "characteristics": ["urbano", "costeiro", "vinho do porto"]
+    },
+    {
+      "id": "pt_norte_matosinhos",
+      "name": "Matosinhos",
+      "type": "municipality",
+      "nuts_ii": "Norte",
+      "nuts_iii": "Área Metropolitana do Porto",
+      "population": 175478,
+      "coordinates": {
+        "latitude": 41.1820,
+        "longitude": -8.6892
+      },
+      "characteristics": ["costeiro", "praia", "gastronômico", "urbano"]
+    },
+    {
+      "id": "pt_norte_vila_real",
+      "name": "Vila Real",
+      "type": "municipality",
+      "nuts_ii": "Norte",
+      "nuts_iii": "Douro",
+      "population": 51850,
+      "coordinates": {
+        "latitude": 41.3005,
+        "longitude": -7.7441
+      },
+      "characteristics": ["tranquilo", "universitário", "montanha", "vinhos"]
+    },
+    {
+      "id": "pt_centro_figueira_foz",
+      "name": "Figueira da Foz",
+      "type": "municipality",
+      "nuts_ii": "Centro",
+      "nuts_iii": "Região de Coimbra",
+      "population": 62125,
+      "coordinates": {
+        "latitude": 40.1508,
+        "longitude": -8.8618
+      },
+      "characteristics": ["costeiro", "praia", "veraneio", "cassino"]
+    },
+    {
+      "id": "pt_centro_guarda",
+      "name": "Guarda",
+      "type": "municipality",
+      "nuts_ii": "Centro",
+      "nuts_iii": "Beiras e Serra da Estrela",
+      "population": 42541,
+      "coordinates": {
+        "latitude": 40.5383,
+        "longitude": -7.2677
+      },
+      "characteristics": ["montanha", "frio", "neve", "tranquilo"]
+    },
+    {
+      "id": "pt_lisboa_loures",
+      "name": "Loures",
+      "type": "municipality",
+      "nuts_ii": "Área Metropolitana de Lisboa",
+      "nuts_iii": "Área Metropolitana de Lisboa",
+      "population": 199494,
+      "coordinates": {
+        "latitude": 38.8307,
+        "longitude": -9.1664
+      },
+      "characteristics": ["residencial", "urbano", "acessível"]
+    },
+    {
+      "id": "pt_lisboa_amadora",
+      "name": "Amadora",
+      "type": "municipality",
+      "nuts_ii": "Área Metropolitana de Lisboa",
+      "nuts_iii": "Área Metropolitana de Lisboa",
+      "population": 171719,
+      "coordinates": {
+        "latitude": 38.7538,
+        "longitude": -9.2305
+      },
+      "characteristics": ["residencial", "urbano", "multicultural"]
+    },
+    {
+      "id": "pt_lisboa_oeiras",
+      "name": "Oeiras",
+      "type": "municipality",
+      "nuts_ii": "Área Metropolitana de Lisboa",
+      "nuts_iii": "Área Metropolitana de Lisboa",
+      "population": 172120,
+      "coordinates": {
+        "latitude": 38.6887,
+        "longitude": -9.3108
+      },
+      "characteristics": ["costeiro", "tecnologia", "qualidade de vida", "empresarial"]
+    },
+    {
+      "id": "pt_norte_barcelos",
+      "name": "Barcelos",
+      "type": "municipality",
+      "nuts_ii": "Norte",
+      "nuts_iii": "Cávado",
+      "population": 120391,
+      "coordinates": {
+        "latitude": 41.5317,
+        "longitude": -8.6147
+      },
+      "characteristics": ["artesanato", "tradicional", "feiras", "tranquilo"]
+    },
+    {
+      "id": "pt_norte_gondomar",
+      "name": "Gondomar",
+      "type": "municipality",
+      "nuts_ii": "Norte",
+      "nuts_iii": "Área Metropolitana do Porto",
+      "population": 168027,
+      "coordinates": {
+        "latitude": 41.1418,
+        "longitude": -8.5331
+      },
+      "characteristics": ["residencial", "urbano", "joalharia"]
+    },
+    {
+      "id": "pt_norte_santo_tirso",
+      "name": "Santo Tirso",
+      "type": "municipality",
+      "nuts_ii": "Norte",
+      "nuts_iii": "Área Metropolitana do Porto",
+      "population": 71530,
+      "coordinates": {
+        "latitude": 41.3428,
+        "longitude": -8.4779
+      },
+      "characteristics": ["têxtil", "industrial", "tranquilo"]
+    },
+    {
+      "id": "pt_centro_caldas_rainha",
+      "name": "Caldas da Rainha",
+      "type": "municipality",
+      "nuts_ii": "Centro",
+      "nuts_iii": "Oeste",
+      "population": 51729,
+      "coordinates": {
+        "latitude": 39.4030,
+        "longitude": -9.1375
+      },
+      "characteristics": ["cerâmica", "termas", "arte", "tranquilo"]
+    },
+    {
+      "id": "pt_centro_tomar",
+      "name": "Tomar",
+      "type": "municipality",
+      "nuts_ii": "Centro",
+      "nuts_iii": "Médio Tejo",
+      "population": 40677,
+      "coordinates": {
+        "latitude": 39.6029,
+        "longitude": -8.4090
+      },
+      "characteristics": ["histórico", "templários", "cultural", "tranquilo"]
+    },
+    {
+      "id": "pt_alentejo_sines",
+      "name": "Sines",
+      "type": "municipality",
+      "nuts_ii": "Alentejo",
+      "nuts_iii": "Alentejo Litoral",
+      "population": 14238,
+      "coordinates": {
+        "latitude": 37.9557,
+        "longitude": -8.8672
+      },
+      "characteristics": ["costeiro", "industrial", "porto", "praia"]
+    },
+    {
+      "id": "pt_centro_covilha",
+      "name": "Covilhã",
+      "type": "municipality",
+      "nuts_ii": "Centro",
+      "nuts_iii": "Beiras e Serra da Estrela",
+      "population": 51797,
+      "coordinates": {
+        "latitude": 40.2801,
+        "longitude": -7.5029
+      },
+      "characteristics": ["montanha", "universitário", "neve", "esqui"]
+    },
+    {
+      "id": "pt_norte_povoa_varzim",
+      "name": "Póvoa de Varzim",
+      "type": "municipality",
+      "nuts_ii": "Norte",
+      "nuts_iii": "Área Metropolitana do Porto",
+      "population": 63408,
+      "coordinates": {
+        "latitude": 41.3836,
+        "longitude": -8.7605
+      },
+      "characteristics": ["costeiro", "praia", "cassino", "veraneio"]
+    },
+    {
+      "id": "pt_algarve_olhao",
+      "name": "Olhão",
+      "type": "municipality",
+      "nuts_ii": "Algarve",
+      "nuts_iii": "Algarve",
+      "population": 45396,
+      "coordinates": {
+        "latitude": 37.0269,
+        "longitude": -7.8421
+      },
+      "characteristics": ["costeiro", "pesca", "ria formosa", "autêntico"]
+    },
+    {
+      "id": "pt_centro_peniche",
+      "name": "Peniche",
+      "type": "municipality",
+      "nuts_ii": "Centro",
+      "nuts_iii": "Oeste",
+      "population": 27753,
+      "coordinates": {
+        "latitude": 39.3558,
+        "longitude": -9.3812
+      },
+      "characteristics": ["costeiro", "surf", "pesca", "praia"]
+    },
+    {
+      "id": "pt_norte_lamego",
+      "name": "Lamego",
+      "type": "municipality",
+      "nuts_ii": "Norte",
+      "nuts_iii": "Douro",
+      "population": 26691,
+      "coordinates": {
+        "latitude": 41.0964,
+        "longitude": -7.8093
+      },
+      "characteristics": ["histórico", "vinhos", "douro", "tranquilo"]
+    }
+  ]
+}

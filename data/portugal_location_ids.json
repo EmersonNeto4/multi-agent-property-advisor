@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "source": "Idealista API - Testado e confirmado",
+    "last_updated": "2025-30-11",
+    "note": "IDs ao nível de distrito e concelhos"
+  },
+  "location_mappings": {
+    "Aveiro": "0-EU-PT-01",
+    "Beja": "0-EU-PT-02",
+    "Braga": "0-EU-PT-03",
+    "Bragança": "0-EU-PT-04",
+    "Castelo Branco": "0-EU-PT-05",
+    "Coimbra": "0-EU-PT-06",
+    "Évora": "0-EU-PT-07",
+    "Faro": "0-EU-PT-08-05",
+    "Guarda": "0-EU-PT-09",
+    "Leiria": "0-EU-PT-10",
+    "Lisboa": "0-EU-PT-11",
+    "Portalegre": "0-EU-PT-12",
+    "Porto": "0-EU-PT-13",
+    "Santarém": "0-EU-PT-14",
+    "Setúbal": "0-EU-PT-15",
+    "Viana do Castelo": "0-EU-PT-16",
+    "Vila Real": "0-EU-PT-17",
+    "Viseu": "0-EU-PT-18",
+    
+    "Sintra": "0-EU-PT-11-11",
+    "Cascais": "0-EU-PT-11-05",
+    "Oeiras": "0-EU-PT-11-10",
+    "Amadora": "0-EU-PT-11-15",
+    "Loures": "0-EU-PT-11-07",
+    "Odivelas": "0-EU-PT-11-16",
+    "Almada": "0-EU-PT-15-03",
+    "Seixal": "0-EU-PT-15-10",
+    "Vila Nova de Gaia": "0-EU-PT-13-17",
+    "Matosinhos": "0-EU-PT-13-08",
+    "Gondomar": "0-EU-PT-13-04",
+    "Maia": "0-EU-PT-13-06",
+    "Albufeira": "0-EU-PT-08-01",
+    "Lagos": "0-EU-PT-08-07",
+    "Loulé": "0-EU-PT-08-08",
+    "Tavira": "0-EU-PT-08-14",
+    "Olhão": "0-EU-PT-08-10"
+  }
+}
