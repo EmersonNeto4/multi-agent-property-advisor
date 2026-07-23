@@ -1,8 +1,9 @@
 import asyncio
-from typing import Dict
+from typing import Dict, Optional
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
 from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 from utils import create_model_client
 from agents import (
     create_planner_agent,
@@ -12,18 +13,28 @@ from agents import (
     create_evaluator_agent
 )
 
-async def run_property_recommendation_system(user_query: str) -> Dict:
+async def run_property_recommendation_system(
+    user_query: str,
+    model_client: Optional[OpenAIChatCompletionClient] = None
+) -> Dict:
     """
     Executa o sistema multi-agente de recomendação de imóveis.
+
+    Se `model_client` não for passado, cria um novo e fecha-o no final
+    (comportamento standalone). Se for passado (ex: pela API, com um
+    client partilhado gerido pelo lifespan), reutiliza-o e não o fecha
+    — quem o criou é responsável por fechá-lo.
     """
-    
+
     print("=" * 80)
     print(" SISTEMA MULTI-AGENTE DE RECOMENDAÇÃO DE IMÓVEIS")
     print("=" * 80)
-    
-    # Criar model client
-    model_client = create_model_client()
-    
+
+    # Criar model client (só se não foi passado um já existente)
+    owns_model_client = model_client is None
+    if owns_model_client:
+        model_client = create_model_client()
+
     # Criar todos os agentes
     print("\n Criando agentes...")
     
@@ -115,9 +126,10 @@ async def run_property_recommendation_system(user_query: str) -> Dict:
             results['evaluator'].append(content)
     
     print(f"\n Razão de término: {results['stop_reason']}")
-    
-    await model_client.close()
-    
+
+    if owns_model_client:
+        await model_client.close()
+
     return results
 
 
