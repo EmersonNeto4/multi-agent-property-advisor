@@ -9,3 +9,5 @@ scipy
 python-dotenv
 autogen-agentchat==0.5.7
 autogen-ext[openai]==0.5.7
+fastapi
+uvicorn[standard]
