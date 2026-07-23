@@ -7,7 +7,6 @@ class RecommendRequest(BaseModel):
 
     query: str = Field(
         ...,
-        min_length=1,
         description="Descrição em linguagem natural do imóvel procurado"
     )
 

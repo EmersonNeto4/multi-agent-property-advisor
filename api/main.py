@@ -1,8 +1,15 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
+import logging
+from typing import List, Optional
 
-from api.dependencies import lifespan, is_model_client_ready
-from api.schemas import HealthResponse
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from openai import APIConnectionError, APIError, APITimeoutError, RateLimitError
+
+from api.dependencies import get_model_client, is_model_client_ready, lifespan
+from api.schemas import AgentOutput, HealthResponse, RecommendRequest, RecommendResponse
+from main import run_property_recommendation_system
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Sistema Multi-Agente de Recomendação de Imóveis", lifespan=lifespan)
 
@@ -20,4 +27,50 @@ async def health(request: Request):
     return HealthResponse(
         status="ok" if ready else "degraded",
         model_client_ready=ready,
+    )
+
+
+def _agent_output(messages: List[str]) -> Optional[AgentOutput]:
+    if not messages:
+        return None
+    return AgentOutput(final=messages[-1], messages=messages)
+
+
+@app.post("/api/recommend", response_model=RecommendResponse)
+async def recommend(payload: RecommendRequest, model_client=Depends(get_model_client)):
+    query = payload.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="A query não pode estar vazia.")
+
+    try:
+        results = await run_property_recommendation_system(query, model_client=model_client)
+    except RateLimitError:
+        raise HTTPException(
+            status_code=503,
+            detail="Limite de pedidos à Groq API atingido. Tenta novamente dentro de momentos.",
+        )
+    except (APITimeoutError, APIConnectionError):
+        raise HTTPException(
+            status_code=503,
+            detail="O modelo demorou demasiado tempo a responder. Tenta novamente.",
+        )
+    except APIError:
+        logger.exception("Erro da API do modelo ao processar recomendação")
+        raise HTTPException(status_code=502, detail="Erro ao comunicar com o modelo de linguagem.")
+    except Exception:
+        logger.exception("Erro inesperado ao executar o sistema multi-agente")
+        raise HTTPException(status_code=500, detail="Erro interno ao processar o pedido.")
+
+    planner_messages = results.get("planner", [])
+    needs_more_info = bool(planner_messages) and "orçamento" in planner_messages[-1].lower()
+
+    return RecommendResponse(
+        planner=_agent_output(planner_messages),
+        location=_agent_output(results.get("location", [])),
+        property=_agent_output(results.get("property", [])),
+        analyst=_agent_output(results.get("analyst", [])),
+        evaluator=_agent_output(results.get("evaluator", [])),
+        stop_reason=str(results.get("stop_reason", "unknown")),
+        needs_more_info=needs_more_info,
+        message=planner_messages[-1] if needs_more_info else None,
     )
