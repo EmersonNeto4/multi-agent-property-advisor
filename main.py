@@ -1,8 +1,9 @@
 import asyncio
-from typing import Dict
+from typing import Dict, Optional
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
 from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 from utils import create_model_client
 from agents import (
     create_planner_agent,
@@ -12,18 +13,21 @@ from agents import (
     create_evaluator_agent
 )
 
-async def run_property_recommendation_system(user_query: str) -> Dict:
-    """
-    Executa o sistema multi-agente de recomendação de imóveis.
-    """
-    
+async def run_property_recommendation_system(
+    user_query: str,
+    model_client: Optional[OpenAIChatCompletionClient] = None
+) -> Dict:
+    """Executa o sistema multi-agente de recomendação de imóveis para uma query do utilizador."""
+
     print("=" * 80)
     print(" SISTEMA MULTI-AGENTE DE RECOMENDAÇÃO DE IMÓVEIS")
     print("=" * 80)
-    
-    # Criar model client
-    model_client = create_model_client()
-    
+
+    # Criar model client (só se não foi passado um já existente)
+    owns_model_client = model_client is None
+    if owns_model_client:
+        model_client = create_model_client()
+
     # Criar todos os agentes
     print("\n Criando agentes...")
     
@@ -99,7 +103,14 @@ async def run_property_recommendation_system(user_query: str) -> Dict:
     for msg in messages:
         source = getattr(msg, 'source', 'unknown')
         content = getattr(msg, 'content', '')
-        
+
+        # content nem sempre é string: eventos de tool call (ToolCallRequestEvent/
+        # ToolCallExecutionEvent) têm content como lista de FunctionCall/
+        # FunctionExecutionResult. Normaliza para string para results[agent] ser
+        # sempre List[str], como o resto do código (Streamlit antigo, schemas da API) assume.
+        if not isinstance(content, str):
+            content = str(content)
+
         # Normalizar nomes dos agentes
         source_lower = source.lower()
         
@@ -115,9 +126,10 @@ async def run_property_recommendation_system(user_query: str) -> Dict:
             results['evaluator'].append(content)
     
     print(f"\n Razão de término: {results['stop_reason']}")
-    
-    await model_client.close()
-    
+
+    if owns_model_client:
+        await model_client.close()
+
     return results
 
 
