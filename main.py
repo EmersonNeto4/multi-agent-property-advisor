@@ -17,14 +17,7 @@ async def run_property_recommendation_system(
     user_query: str,
     model_client: Optional[OpenAIChatCompletionClient] = None
 ) -> Dict:
-    """
-    Executa o sistema multi-agente de recomendação de imóveis.
-
-    Se `model_client` não for passado, cria um novo e fecha-o no final
-    (comportamento standalone). Se for passado (ex: pela API, com um
-    client partilhado gerido pelo lifespan), reutiliza-o e não o fecha
-    — quem o criou é responsável por fechá-lo.
-    """
+    """Executa o sistema multi-agente de recomendação de imóveis para uma query do utilizador."""
 
     print("=" * 80)
     print(" SISTEMA MULTI-AGENTE DE RECOMENDAÇÃO DE IMÓVEIS")

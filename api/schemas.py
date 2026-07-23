@@ -1,3 +1,5 @@
+"""Modelos Pydantic (request/response) da API. Ver docs/FASE1_DECISOES.txt para as decisões de design."""
+
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
@@ -19,7 +21,7 @@ class AgentOutput(BaseModel):
 
 
 class RecommendResponse(BaseModel):
-    """Resposta de POST /api/recommend."""
+    """Resposta de POST /api/recommend: saída de cada agente + estado de término."""
 
     planner: Optional[AgentOutput] = None
     location: Optional[AgentOutput] = None
@@ -51,7 +53,7 @@ class LocationCoordinates(BaseModel):
 
 
 class LocationResponse(BaseModel):
-    """Uma entrada de GET /api/locations."""
+    """Uma entrada de GET /api/locations. Estrutura igual à de data/portugal_locations.json."""
 
     id: str
     name: str

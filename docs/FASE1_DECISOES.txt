@@ -1,0 +1,161 @@
+FASE 1 — Migração Streamlit -> FastAPI + Frontend próprio
+===========================================================
+Registo das decisões técnicas tomadas durante a implementação, com a
+justificação de cada uma. As docstrings no código ficam curtas (resumo do
+que a função faz); o "porquê" de cada decisão fica documentado aqui.
+
+
+1. Segurança — chaves de API (utils/config.py)
+-----------------------------------------------
+- GROQ_API_KEY, IDEALISTA_API_KEY e IDEALISTA_API_SECRET estavam hardcoded
+  como valores por defeito de os.getenv() em utils/config.py. Isto foi
+  removido antes do primeiro commit git, para as chaves nunca entrarem no
+  histórico do repositório (o projeto vai ser público no GitHub).
+- As chaves reais passaram para um ficheiro .env (na raiz, ignorado pelo
+  git). Foi criado .env.example (sem valores) como template para quem
+  clonar o repositório.
+- utils/config.py passou a chamar load_dotenv() no arranque e a ler as
+  variáveis sem fallback hardcoded.
+- python-dotenv foi adicionado ao requirements.txt.
+
+
+2. Configuração do repositório git
+-----------------------------------
+- .gitignore criado a excluir: .env, __pycache__/, *.pyc, .venv/, venv/,
+  *.egg-info/, .pytest_cache/, .DS_Store, .claude/ (config local do Claude
+  Code, não pertence ao projeto).
+- requirements.txt corrigido: faltavam autogen-agentchat e autogen-ext
+  (usadas em main.py/config.py) apesar de já serem uma dependência real do
+  projeto. Versões fixadas em 0.5.7 (as instaladas no ambiente conda "dei"
+  onde o projeto corre).
+
+
+3. main.py — permitir reutilização do model_client
+----------------------------------------------------
+- Antes: run_property_recommendation_system(user_query) criava um
+  model_client novo a cada chamada e fechava-o no fim. Adequado a um script
+  standalone, mas desperdiçado numa API que serve muitos pedidos.
+- Alteração: assinatura passou a
+  run_property_recommendation_system(user_query, model_client=None).
+    - Se model_client is None -> comportamento antigo (cria e fecha),
+      mantendo main() (execução standalone de teste) sem alterações.
+    - Se for passado um client já existente -> reutiliza-o e NÃO o fecha;
+      quem o criou é responsável por fechá-lo.
+- Motivo: permite à API criar o client uma única vez no arranque (lifespan)
+  sem duplicar a lógica de orquestração dos agentes dentro da API.
+
+
+4. api/dependencies.py — lifespan e partilha do model_client
+----------------------------------------------------------------
+- lifespan(app): cria o model_client uma vez no startup, guarda-o em
+  app.state.model_client, e fecha-o uma vez no shutdown. Passado a
+  FastAPI(lifespan=lifespan) em api/main.py.
+- app.state foi escolhido em vez de uma variável global de módulo porque é
+  o padrão recomendado pelo FastAPI para estado partilhado por pedido:
+  fica associado à instância da app (relevante em testes, onde pode haver
+  mais do que uma instância) e é acedido explicitamente via
+  request.app.state, não por import de uma variável mutável.
+- get_model_client(request): dependency (Depends(get_model_client)) usada
+  pelos endpoints para obter o client partilhado sem acoplarem a
+  app.state diretamente.
+- is_model_client_ready(request): usa getattr com default (em vez de aceder
+  diretamente a request.app.state.model_client) para não rebentar com
+  AttributeError se for chamado antes do lifespan correr (edge case /
+  testes).
+
+
+5. api/schemas.py — modelos Pydantic
+----------------------------------------
+- RecommendRequest.query NÃO tem min_length=1: a validação de "query vazia"
+  é feita explicitamente no endpoint (não como constraint de schema), para
+  poder devolver um 400 com mensagem em português controlada por nós, em
+  vez do 422 automático (com corpo genérico) que resultaria de uma
+  constraint do Pydantic.
+- AgentOutput tem dois campos: final (última mensagem — o que o Streamlit
+  original já mostrava via results[agent][-1]) e messages (trace completo).
+  Decisão explícita de incluir os dois: messages custa pouco a expor e
+  permite ao frontend ter uma secção expansível com o histórico completo
+  do agente, sem pedidos extra à API.
+- Os 5 campos de agente em RecommendResponse (planner, location, property,
+  analyst, evaluator) são Optional. Motivo: o team pode terminar antes de
+  todos os agentes correrem (ex: needs_more_info=True pára logo no
+  Planner) — "o agente não correu" (None) tem de ser distinguível de
+  "correu e não disse nada" (string vazia).
+- Nome do campo "property" (não "property_agent" ou similar): mantém-se
+  igual à chave results['property'] já usada em main.py/app.py, para o
+  mapeamento entre o dicionário interno e a resposta da API ser direto.
+  Não há conflito com a keyword `property` do Python — aqui é só um nome
+  de atributo de um BaseModel Pydantic, não uma property real da classe.
+- LocationResponse / LocationCoordinates espelham exatamente a estrutura
+  de data/portugal_locations.json (confirmado por script contra as 42
+  localizações do ficheiro) — não há transformação de dados entre o JSON e
+  a resposta da API.
+
+
+6. api/main.py — endpoints
+-------------------------------
+- Todos os endpoints da API ficam sob o prefixo /api/... para poderem
+  coexistir com o frontend estático (servido na raiz "/", via StaticFiles
+  — a montar no passo do frontend) na mesma porta, sem ambiguidade de
+  rotas.
+- CORS: allow_origins limitado a http://localhost:5500 e
+  http://127.0.0.1:5500 (porta típica do Live Server / servidores
+  estáticos usados em desenvolvimento). Não é allow_origins=["*"] porque
+  não há necessidade de abrir a API a qualquer origem nesta fase.
+
+  GET /api/health
+  - model_client_ready reflete se app.state.model_client foi criado pelo
+    lifespan. Se a app responde mas isto é False, algo falhou no arranque
+    (ex: erro a instanciar o client) e /api/recommend vai falhar.
+  - status é "degraded" (não "error") nesse caso, porque a app em si está
+    viva e a servir pedidos — só a componente do modelo está em baixo.
+
+  POST /api/recommend
+  - Query vazia/só espaços -> 400 (validado no endpoint, ver ponto 5).
+  - Tratamento de erros nunca deixa propagar stack trace cru:
+      * 400 -> validação do pedido (query vazia)
+      * 503 -> RateLimitError da Groq, ou timeout/falha de ligação
+        (situação transitória, faz sentido o cliente repetir o pedido)
+      * 502 -> outro erro da API do modelo (openai.APIError genérico, não
+        transitório do lado do cliente)
+      * 500 -> qualquer erro inesperado no resto do pipeline (agentes,
+        CSP, A*, KNN)
+    Erros 502/500 são registados via logger.exception() para debug, mas a
+    mensagem devolvida ao cliente é sempre genérica.
+  - needs_more_info é detetado da MESMA forma que já era feito em
+    main.py/app.py antes desta fase: substring "orçamento" (case
+    insensitive) na última mensagem do Planner. Não se usa o stop_reason
+    do AutoGen para isto porque o texto exato que a condição de término
+    procura ("indique o seu orçamento") não está garantidamente presente
+    no stop_reason devolvido pela lib — inspecionar a mensagem do próprio
+    Planner é o que o código original já fazia, e é mais fiável.
+  - Quando needs_more_info é True, message é preenchido com essa última
+    mensagem do Planner, para o frontend mostrar diretamente a pergunta.
+  - _agent_output(messages) devolve None (não um AgentOutput vazio) quando
+    o agente não chegou a correr — permite ao frontend/consumidor da API
+    distinguir "não correu" de "correu e não disse nada".
+
+  GET /api/locations
+  - Reaproveita tools/data_loader.get_all_locations() tal qual — sem
+    schema de query nem paginação, o endpoint só existe para o frontend
+    poder fazer autocomplete sem embutir o JSON de localizações no
+    HTML/JS.
+  - Não depende do model_client nem dos agentes, só de I/O local — por
+    isso não usa o mesmo mapeamento de erros do Groq; qualquer falha aqui
+    (ex: JSON corrompido) é tratada como erro de servidor genérico (500).
+
+
+7. Testes manuais efetuados
+-------------------------------
+- GET /api/health -> 200, {"status":"ok","model_client_ready":true}
+  (confirma que o lifespan cria o model_client corretamente).
+- POST /api/recommend com query em branco -> 400,
+  {"detail":"A query não pode estar vazia."}
+- GET /api/locations -> 200, lista com 42 localizações, estrutura
+  confirmada (id, name, type, nuts_ii, nuts_iii, population, coordinates,
+  characteristics).
+- Testes correram com uvicorn no ambiente conda "dei" (onde já estavam
+  instaladas as dependências do projeto, incluindo fastapi/uvicorn).
+- Teste end-to-end com uma query real (a chamar Groq + Idealista de
+  facto) fica para depois do frontend estar ligado, conforme o plano
+  original combinado.

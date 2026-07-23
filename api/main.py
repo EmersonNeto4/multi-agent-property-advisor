@@ -1,3 +1,5 @@
+"""API FastAPI do Sistema Multi-Agente de Recomendação de Imóveis. Ver docs/FASE1_DECISOES.txt para as decisões de arquitetura."""
+
 import logging
 from typing import List, Optional
 
@@ -6,8 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from openai import APIConnectionError, APIError, APITimeoutError, RateLimitError
 
 from api.dependencies import get_model_client, is_model_client_ready, lifespan
-from api.schemas import AgentOutput, HealthResponse, RecommendRequest, RecommendResponse
+from api.schemas import AgentOutput, HealthResponse, LocationResponse, RecommendRequest, RecommendResponse
 from main import run_property_recommendation_system
+from tools.data_loader import get_all_locations
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +26,7 @@ app.add_middleware(
 
 @app.get("/api/health", response_model=HealthResponse)
 async def health(request: Request):
+    """Health check: confirma se a app e o model_client estão operacionais."""
     ready = is_model_client_ready(request)
     return HealthResponse(
         status="ok" if ready else "degraded",
@@ -31,6 +35,7 @@ async def health(request: Request):
 
 
 def _agent_output(messages: List[str]) -> Optional[AgentOutput]:
+    """Converte a lista de mensagens de um agente em AgentOutput (ou None se o agente não correu)."""
     if not messages:
         return None
     return AgentOutput(final=messages[-1], messages=messages)
@@ -38,6 +43,7 @@ def _agent_output(messages: List[str]) -> Optional[AgentOutput]:
 
 @app.post("/api/recommend", response_model=RecommendResponse)
 async def recommend(payload: RecommendRequest, model_client=Depends(get_model_client)):
+    """Executa o sistema multi-agente para uma query em linguagem natural e devolve os resultados por agente."""
     query = payload.query.strip()
     if not query:
         raise HTTPException(status_code=400, detail="A query não pode estar vazia.")
@@ -74,3 +80,13 @@ async def recommend(payload: RecommendRequest, model_client=Depends(get_model_cl
         needs_more_info=needs_more_info,
         message=planner_messages[-1] if needs_more_info else None,
     )
+
+
+@app.get("/api/locations", response_model=List[LocationResponse])
+async def locations():
+    """Devolve a lista de localizações disponíveis (data/portugal_locations.json)."""
+    try:
+        return get_all_locations()
+    except Exception:
+        logger.exception("Erro ao carregar o dataset de localizações")
+        raise HTTPException(status_code=500, detail="Erro ao carregar as localizações.")
