@@ -44,7 +44,7 @@ def create_model_client(
     
     Args:
         model: Nome do modelo a usar
-        api_key: API key (usa OPENROUTER_API_KEY por padrão)
+        api_key: API key (usa GROQ_API_KEY por padrão)
         base_url: Base URL da API
         
     Returns:
