@@ -1,6 +1,7 @@
 """API FastAPI do Sistema Multi-Agente de Recomendação de Imóveis. Ver docs/FASE1_DECISOES.txt para as decisões de arquitetura."""
 
 import logging
+from pathlib import Path
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -93,6 +94,10 @@ async def locations():
         raise HTTPException(status_code=500, detail="Erro ao carregar as localizações.")
 
 
+# Caminho absoluto (derivado deste ficheiro, não do cwd do processo): "frontend"
+# relativo só funciona se a app for arrancada a partir da raiz do projeto.
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+
 # Montado por último para não sombrear as rotas /api/*: pedidos a caminhos
 # não reconhecidos acima (incluindo "/") são servidos a partir de frontend/.
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
