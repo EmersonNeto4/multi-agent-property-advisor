@@ -4,8 +4,11 @@ Autenticação OAuth 2.0 para API Idealista.
 
 import httpx
 import base64
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 class IdealistaAuth:
@@ -52,8 +55,20 @@ class IdealistaAuth:
         
         async with httpx.AsyncClient() as client:
             response = await client.post(url, headers=headers, data=data)
-            response.raise_for_status()
-            
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError:
+                # raise_for_status() sozinho não deixa a causa real visível nos
+                # logs (só a exceção genérica). Regista aqui o status e o corpo
+                # da resposta da própria API do Idealista (nunca as credenciais
+                # do pedido) para o erro ser diagnosticável a partir dos logs.
+                logger.error(
+                    "Falha ao obter token OAuth do Idealista: status=%s body=%r",
+                    response.status_code,
+                    response.text,
+                )
+                raise
+
             result = response.json()
             
             self.token = result["access_token"]

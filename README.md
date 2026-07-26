@@ -22,6 +22,13 @@ Instalar dependências:
 pip install -r requirements.txt
 ```
 
+Para correr os testes automatizados, instala também as dependências de
+desenvolvimento (`requirements-dev.txt` inclui `requirements.txt` + `pytest`):
+
+```bash
+pip install -r requirements-dev.txt
+```
+
 Criar um ficheiro `.env` na raiz do projeto (usa `.env.example` como
 template):
 
@@ -68,7 +75,21 @@ explicitamente antes de continuar.
 Documentação interativa (Swagger) em `/docs`.
 
 
-## 5. Notas rápidas
+## 5. Testes
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+Os testes (`tests/test_api.py`) usam `fastapi.testclient.TestClient` e não
+fazem chamadas reais à Groq nem ao Idealista — o sistema multi-agente é
+mocked e o `model_client` do lifespan é substituído via
+`app.dependency_overrides`. Correm sem `.env` nem chaves de API (é o que o
+GitHub Actions da Fase 3 vai executar).
+
+
+## 6. Notas rápidas
 
 - Chamadas ao Groq podem ocasionalmente dar rate-limit — a API devolve
   `503` nesse caso, com uma mensagem a pedir para tentar novamente.
@@ -76,7 +97,7 @@ Documentação interativa (Swagger) em `/docs`.
   segredos, não valores por defeito no código.
 
 
-## 6. Estrutura do projeto
+## 7. Estrutura do projeto
 
 ```
 api/            # FastAPI: endpoints, schemas Pydantic, lifespan do model_client
@@ -85,22 +106,39 @@ agents/         # Definição dos 5 agentes AutoGen
 tools/          # CSP, A*, KNN, cliente Idealista, dados de localização
 models/         # UserPreferences (Pydantic)
 utils/          # Configuração e criação do model client
+tests/          # Testes automatizados (pytest)
 main.py         # Orquestração do team (run_property_recommendation_system)
-docs/           # Registo de decisões técnicas por fase
+docs/           # Registo de decisões técnicas por fase + relatório académico (PDF)
 ```
 
 
-## 7. Roadmap
+## 8. Roadmap
 
 Este projeto segue um roadmap em 4 fases, focado em demonstrar competências
 de engenharia/deployment além do algoritmo de recomendação em si:
 
 - **Fase 1 (concluída)** — desacoplar front-end e back-end com FastAPI +
   frontend próprio. Ver [docs/FASE1_DECISOES.txt](docs/FASE1_DECISOES.txt)
-  para as decisões técnicas tomadas.
+  para as decisões técnicas tomadas (secção 11 regista as correções de
+  dívida técnica feitas depois da Fase 1, antes de arrancar a Fase 3).
 - **Fase 2** — substituir o mapeamento por keywords no Location Agent por
   RAG com embeddings semânticos (sentence-transformers + Chroma).
 - **Fase 3** — Dockerização com docker-compose + CI/CD via GitHub Actions.
   A estrutura atual (API e frontend como componentes separados, config via
-  `.env`) já está preparada para isto sem alterações estruturais.
+  `.env`, testes em `tests/`) já está preparada para isto sem alterações
+  estruturais.
 - **Fase 4** — Deploy em Render/Railway com demo live.
+
+
+## 9. Atribuição
+
+Projeto desenvolvido originalmente em coautoria com **Gonçalo Bento**, no
+âmbito da unidade curricular de IARP (2025/2026), FCTUC. Este repositório
+é a evolução individual do trabalho conduzida por **Emerson Neto** a partir
+do fim da Fase 1 (migração Streamlit → FastAPI), incluindo as fases
+seguintes do roadmap.
+
+O relatório académico original está em
+[docs/Relatorio_SMA_Recomendacao_de_Imoveis.pdf](docs/Relatorio_SMA_Recomendacao_de_Imoveis.pdf)
+(dados pessoais do Gonçalo — número de estudante e email — redigidos antes
+de o repositório se tornar público; a autoria de ambos mantém-se visível).

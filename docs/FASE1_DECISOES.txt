@@ -262,3 +262,133 @@ que a função faz); o "porquê" de cada decisão fica documentado aqui.
   o sistema não vai encontrar imóveis reais até isso ser investigado.
   Não foi corrigido nesta fase por estar fora do âmbito (migração
   Streamlit -> FastAPI), mas fica registado para investigação futura.
+- ATUALIZAÇÃO (investigação pós-Fase 1, ver secção 11.6): a causa NÃO é
+  um cabeçalho em falta no nosso código. Confirmado com pedidos reais
+  contra https://api.idealista.com/oauth/token (mesmas credenciais do
+  .env):
+    * O pedido tal como o código o construía (sem Accept explícito)
+      devolve 406 com corpo vazio.
+    * Adicionar Accept: application/json, ou um User-Agent de browser,
+      não muda o resultado — continua 406.
+    * Um pedido SEM qualquer header Authorization, e mesmo um GET simples
+      a https://api.idealista.com/ (raiz, sem token nenhum envolvido),
+      devolvem o MESMO 406 com corpo vazio.
+    * Os headers de resposta mostram "via: 1.1 varnish" e
+      "x-served-by: cache-ams-...": a resposta vem de uma camada de
+      cache/edge (Varnish) à frente da API, não da aplicação do
+      Idealista em si — uma aplicação real normalmente devolveria um
+      corpo JSON de erro (como acontece noutros erros documentados desta
+      API, ex: 407 "Please, request an API access").
+  Conclusão: o bloqueio acontece antes de qualquer validação de
+  credenciais ou negociação de conteúdo pela aplicação — é consistente
+  com um bloqueio de rede/anti-bot na borda (ex: por IP/ASN de
+  datacenter/cloud), não com um problema de headers, de Content-Type ou
+  de credenciais inválidas. Não foi tentado contornar este bloqueio
+  (ex: rotação de headers/IP) por estar fora do âmbito de uma correção de
+  código e por poder infringir os termos de uso da API do Idealista.
+  Fica documentado para decisão humana: contactar o suporte do Idealista,
+  testar a partir de outra rede/IP, ou confirmar o estado da conta/trial.
+
+
+11. Correções pós-Fase 1
+-----------------------------
+Revisão de código feita depois da Fase 1 estar em main, para limpar dívida
+técnica antes de a Fase 3 (Docker + CI) arrancar. Branch fix/pos-fase1, um
+commit por item.
+
+11.1 Tag v1.0-streamlit (retroativa)
+- O app.py do Streamlit foi apagado no merge da Fase 1 sem a tag que
+  devia ter preservado essa versão ter chegado a ser criada. O commit
+  a819c14 ("Merge remote LICENSE") ainda tinha app.py na árvore —
+  confirmado antes de agir. Criada tag anotada v1.0-streamlit nesse
+  commit e enviada para o remoto.
+- Motivo: sem isto, a última versão Streamlit só seria recuperável via
+  git log/reflog manual; a tag torna-a um ponto de referência direto.
+
+11.2 requirements.txt — dependências em falta
+- httpx: usado em tools/idealista_oauth.py, tools/idealista_client.py e
+  tools/weather.py, mas nunca declarado — só funcionava por ser instalado
+  transitivamente por outra dependência. Um container limpo (Fase 3) não
+  teria essa garantia.
+- openai: usado diretamente em api/main.py (exceções
+  APIConnectionError/APIError/APITimeoutError/RateLimitError), também só
+  presente transitivamente via autogen-ext[openai]. Mesma lógica do
+  httpx: import direto deve ter declaração direta.
+- Verificação sistemática de todos os imports de terceiros do projeto
+  contra requirements.txt não encontrou mais nenhuma falta. Achado à
+  parte (não corrigido, fora do âmbito do pedido): requests, aiohttp,
+  pandas e scipy estão declarados mas não há nenhum import deles em
+  nenhum .py do projeto — parecem dependências mortas.
+
+11.3 Relatório PDF — dados pessoais e localização
+- Relatório_SMA_Recomendação_de_Imóveis.pdf estava na raiz do repositório
+  público com dados pessoais do coautor original (Gonçalo Bento): número
+  de estudante e email, ambos no formato LaTeX
+  "{num1, num2}@student.uc.pt" da linha de autoria.
+- Movido para docs/Relatorio_SMA_Recomendacao_de_Imoveis.pdf (sem
+  acentos no nome, para evitar problemas de encoding em CI/Linux).
+- O número de estudante do Gonçalo (confirmado com o autor antes de agir,
+  para não redigir os dados errados) foi removido do conteúdo do PDF via
+  PyMuPDF (fitz), com redação real de content stream — não um retângulo
+  desenhado por cima. Verificado com pdftotext sobre o PDF final: o
+  número do Gonçalo já não aparece no texto extraído; o número do
+  Emerson e o nome do Gonçalo continuam visíveis (atribuição da autoria
+  mantém-se correta).
+- A versão original (não redigida) continua no histórico git, no commit
+  68d3a47 ("Initial commit"). Não foi reescrito o histórico — decisão
+  fica para o autor do repositório avaliar se compensa.
+
+11.4 Docstring desatualizada em utils/config.py
+- create_model_client() tinha na docstring "usa OPENROUTER_API_KEY por
+  padrão", sobra de uma versão anterior do projeto (antes de mudar para
+  Groq). O código já lia GROQ_API_KEY corretamente — só a docstring
+  estava errada. Corrigida. Confirmado por grep que não havia mais
+  nenhuma referência a OpenRouter no resto do código/documentação.
+
+11.5 Testes automatizados mínimos (tests/test_api.py)
+- Não existia nenhum teste automatizado (Fase 1 só teve testes manuais,
+  secção 8). A Fase 3 precisa de algo para o GitHub Actions correr.
+- 4 testes com pytest + fastapi.testclient.TestClient: GET /api/health
+  (schema HealthResponse), GET /api/locations (42 localizações, schema
+  LocationResponse), POST /api/recommend com query vazia (400 com a
+  mensagem exata), e POST /api/recommend com uma query válida e o
+  sistema multi-agente mocked (200, resposta bem formada).
+- Nenhum teste chama a Groq ou o Idealista de facto. O lifespan
+  (api/dependencies.py) cria o model_client real no startup, o que
+  rebentaria sem GROQ_API_KEY — TestClient só corre o lifespan quando
+  usado como context manager ("with TestClient(app)"), por isso o
+  fixture instancia-o diretamente (sem "with") para nunca o disparar.
+  get_model_client é substituído via app.dependency_overrides;
+  run_property_recommendation_system é substituído via monkeypatch por
+  uma função assíncrona que devolve um dict fixo com a mesma estrutura
+  que main.py produz (planner/location/property/analyst/evaluator/
+  all_messages/stop_reason).
+- api/main.py montava StaticFiles(directory="frontend", ...) com caminho
+  relativo ao cwd do processo — só funcionava se a app fosse arrancada a
+  partir da raiz do projeto. Passou a usar um caminho absoluto derivado
+  de __file__ (pathlib). tools/data_loader.py já fazia isto corretamente
+  (Path(__file__).parent.parent) — não precisou de alteração.
+- tests/conftest.py insere a raiz do projeto no sys.path a partir da
+  localização do próprio ficheiro (não do cwd), para os imports
+  (main, api.main, tools.*) funcionarem independentemente de onde o
+  pytest é invocado.
+- Confirmado: pytest passa 4/4 correndo a partir de /tmp (fora da árvore
+  do projeto) e com o .env temporariamente renomeado (sem chaves de API
+  nenhumas presentes no ambiente).
+- requirements-dev.txt criado à parte (inclui requirements.txt + pytest)
+  para não obrigar quem só corre a app em produção a instalar
+  dependências de teste. httpx já tinha ficado em requirements.txt na
+  secção 11.2 (é dependência real de tools/, e o TestClient também
+  precisa dele) — não duplicado em requirements-dev.txt.
+
+11.6 Investigação do 406 no OAuth do Idealista
+- Ver secção 10 para o diagnóstico (bloqueio de borda/Varnish, externo,
+  independente de headers ou credenciais — reproduzido com pedidos reais
+  contra a API).
+- Correção aplicada (independente da causa ser externa): raise_for_status()
+  em tools/idealista_oauth.py não deixava visível o status code nem o
+  corpo da resposta em caso de falha. Agora, antes de propagar a exceção,
+  regista-se via logger.error() o status code e o corpo da resposta da
+  própria API do Idealista — nunca as credenciais do pedido. O
+  comportamento de propagação/absorção da falha (property_search.py
+  continua a apanhar a exceção e a devolver lista vazia) não mudou.
