@@ -177,3 +177,99 @@ com a maior margem, e é o mais leve e mais rápido dos 3 testados.
         suficientes ou não fizerem sentido para o âmbito do projeto.
 - Nenhuma destas opções foi implementada agora - fica registado como
   risco conhecido para quem arrancar a Fase 4.
+
+
+6. Integração em tools/location_search.py (Passo 3)
+----------------------------------------------------------
+- keyword_mapping removido de find_best_locations. Candidatos:
+    * Com location_hint: inalterado - get_candidate_locations() continua
+      a resolver o nome/região (exact/fuzzy/region match), sem
+      environment_keywords (deixou de existir). O retrieval semântico
+      NÃO participa na seleção geográfica, só no scoring (ver abaixo).
+    * Sem location_hint, com environment_type: candidatos passam a ser o
+      top-K (min(20, top_n*4)) por similaridade semântica sobre as 42
+      localizações, substituindo o antigo
+      filter_locations_by_characteristics por keywords.
+    * Sem location_hint nem environment_type (ou retrieval indisponível):
+      inalterado - população desc (mesmo fallback de sempre).
+- evaluate_location: characteristics_score deixa de ser calculado por
+  substring matching e passa a ser recebido já calculado (novo parâmetro,
+  default 0.5 - mesmo neutro de sempre quando não há informação).
+- Quando há location_hint E environment_type ao mesmo tempo (o caso mais
+  comum em queries reais), a similaridade semântica entra no scoring dos
+  candidatos escolhidos geograficamente - ex: dentro do Algarve, Tavira
+  fica à frente de Albufeira para "zona sossegada" (ver secção 8).
+- Sentinela NO_PREFERENCE_SENTINEL = "equilibrado": find_locations_wrapper
+  (não alterado nesta fase) usa "equilibrado" como valor por omissão de
+  environment_type quando o utilizador não especifica nenhum. Antes desta
+  fase isso não tinha efeito (não batia com nenhuma entrada do
+  keyword_mapping, ficava sempre no fallback neutro 0.5). Sem tratamento,
+  "equilibrado" passaria a ser uma query semântica real - testado: gera
+  similaridades baixas e NÃO uniformes (0.0-0.17, Albufeira ligeiramente
+  favorecida), distorcendo o caso "sem preferência" que devia ser neutro.
+  DECISÃO: find_best_locations trata este valor como sentinela e desliga
+  só a parte semântica (characteristics_score fica 0.5); o mesmo valor
+  continua a ser passado a evaluate_location/analyze_weather_with_llm
+  para a análise climática, exatamente como antes desta fase - não é
+  uma segunda mudança de comportamento escondida.
+  Alternativa rejeitada: mudar o default do wrapper de "equilibrado" para
+  None. Rejeitada porque find_locations_wrapper está fora do âmbito desta
+  fase (não deveria precisar de alterações) e porque None desligaria
+  também a análise climática (analyze_weather_with_llm só corre
+  "if environment_type:"), uma segunda mudança de comportamento para
+  resolver a primeira.
+- Testado end-to-end com uvicorn + .env reais (ver secção 8).
+
+
+7. Problema conhecido fora do âmbito: extração do Planner
+------------------------------------------------------------------
+- Sintoma: na query "Procuro uma casa T3 num sítio pacato, perto do
+  oceano, orçamento até 350 mil euros.", o Planner extraiu
+  location="perto do oceano" e environment_type="pacato" - devia ter
+  percebido "perto do oceano" como parte da descrição de ambiente
+  (equivalente a "costeiro"), não como um hint de localização geográfica.
+  Consequência: get_candidate_locations("perto do oceano", ...) não
+  encontra nome/região correspondente, cai no fallback de população, e só
+  depois é que o re-ranking semântico por "pacato" atua sobre esse pool -
+  um resultado válido mas menos "limpo" do que seria com a extração
+  correta.
+- Causa provável: o system message do Planner Agent (agents/planner.py)
+  não dá exemplos suficientes para distinguir "localização geográfica"
+  (nome de cidade/região) de "descrição de ambiente" quando a frase do
+  utilizador usa uma preposição de localização ("perto de X") para
+  descrever ambiente em vez de geografia. Não é um bug introduzido por
+  esta fase - o Planner não foi tocado.
+- Não corrigido nesta fase (fora do âmbito - Fase 2 é sobre o Location
+  Agent, não o Planner). Sugestão para o futuro: ajustar o system message
+  do Planner com exemplos explícitos deste caso (ex: "perto do mar/
+  oceano/praia" -> environment_type, não location), candidato a uma fase
+  2.5 ou à preparação da demo da Fase 4, para as queries de demonstração
+  não tropeçarem nisto.
+
+
+8. Queries para a demo da Fase 4
+--------------------------------------
+Testadas end-to-end (uvicorn + .env reais) durante o Passo 3. As duas
+primeiras mostram bem o ganho do RAG sem tropeçar no problema da secção 7
+(Planner extrai location e environment_type corretamente); a terceira é
+um exemplo do problema conhecido, para referência/contraste.
+
+    - "Quero um apartamento T2 no Algarve, numa zona sossegada e
+      autêntica, com orçamento até 300 mil euros." - Planner extrai
+      location="Algarve", environment_type="sossegada e autêntica"
+      corretamente. Resultado: Olhão (0.583), Tavira (0.570), Albufeira
+      (0.552), Faro (0.544), Portimão (0.538) - Tavira à frente de
+      Albufeira, o critério de aceitação da fase. BOA para demo.
+    - Variante sugerida (não testada ainda, mas mesma estrutura de
+      frase): "Quero uma casa em Lisboa, num ambiente vibrante e com vida
+      noturna" - testa o oposto (favorecer Albufeira/Lisboa-vibrante em
+      vez de sítios calmos), útil para mostrar que o RAG discrimina nos
+      dois sentidos, não só "calmo vence sempre".
+    - "Procuro uma casa T3 num sítio pacato, perto do oceano, orçamento
+      até 350 mil euros." - Planner extrai location="perto do oceano"
+      (incorretamente, ver secção 7) e environment_type="pacato"
+      corretamente. Resultado ainda reflete o ganho (localizações
+      "tranquilo"-like saem à frente dentro do pool de população), mas
+      é uma demo menos direta de ler. EVITAR nesta forma para a demo, ou
+      usar precisamente para ilustrar o problema da secção 7 se for esse
+      o objetivo.
