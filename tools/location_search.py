@@ -223,7 +223,7 @@ async def find_best_locations(
     # semantic_search.is_available()) - em ambos os casos degrada-se para
     # características neutras (0.5), tratado abaixo.
     similarity_by_id: Dict[str, float] = {}
-    if environment_type and environment_type.lower() != NO_PREFERENCE_SENTINEL:
+    if environment_type and environment_type.strip().lower() != NO_PREFERENCE_SENTINEL:
         similarity_by_id = dict(semantic_query(environment_type, top_k=200))
 
     if location_hint:

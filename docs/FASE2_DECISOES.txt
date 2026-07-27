@@ -195,6 +195,21 @@ com a maior margem, e é o mais leve e mais rápido dos 3 testados.
 - evaluate_location: characteristics_score deixa de ser calculado por
   substring matching e passa a ser recebido já calculado (novo parâmetro,
   default 0.5 - mesmo neutro de sempre quando não há informação).
+- MUDANÇA DE ESCALA (importante para quem ler final_score/characteristics_score
+  no futuro): antes desta fase, characteristics_score vivia em [0.5, 1.0],
+  com 0.5 como neutro e a subir por cada keyword que batesse certo (ver
+  FASE1 - não existia FASE1_DECISOES para isto, era o comportamento
+  original do projeto). Agora é a similaridade de cosseno crua devolvida
+  pelo ChromaDB (tools/semantic_search.py), que na prática anda por
+  ~0.2-0.6 mesmo para bons matches (ver os números da secção 3) -
+  frequentemente ABAIXO de 0.5, incluindo para localizações claramente
+  adequadas. Isto é esperado e não é um bug: o que importa é a ordenação
+  RELATIVA dentro da mesma query (confirmada consistente nas secções 3, 6
+  e 8), não o valor absoluto. Registado aqui para ninguém tentar
+  "corrigir" isto de volta para uma escala 0.5-1.0 no futuro sem este
+  contexto - normalizar a escala não traria nenhum benefício real (a
+  ordenação já está correta) e complicaria a leitura direta dos scores
+  crus do Chroma.
 - Quando há location_hint E environment_type ao mesmo tempo (o caso mais
   comum em queries reais), a similaridade semântica entra no scoring dos
   candidatos escolhidos geograficamente - ex: dentro do Algarve, Tavira

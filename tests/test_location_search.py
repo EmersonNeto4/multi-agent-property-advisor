@@ -8,6 +8,8 @@ NO_PREFERENCE_SENTINEL.
 
 import asyncio
 
+import pytest
+
 import tools.location_search as location_search
 
 
@@ -19,13 +21,20 @@ async def _fake_analyze_weather_with_llm(weather_data, environment_type, model_c
     return 0.7
 
 
-def test_equilibrado_sentinel_skips_semantic_search(monkeypatch):
+@pytest.mark.parametrize(
+    "environment_type",
+    ["equilibrado", "Equilibrado", "  equilibrado  ", " EQUILIBRADO"],
+    ids=["exato", "maiusculas", "espacos", "espacos_e_maiusculas"],
+)
+def test_equilibrado_sentinel_skips_semantic_search(monkeypatch, environment_type):
     """
     NO_PREFERENCE_SENTINEL ("equilibrado") é o default de environment_type
     em find_locations_wrapper quando o utilizador não especifica um ambiente.
     find_best_locations deve tratá-lo como "sem preferência" - sem chamar a
     pesquisa semântica, e com characteristics_score neutro (0.5) para os
-    candidatos, exatamente como acontecia antes desta fase.
+    candidatos, exatamente como acontecia antes desta fase. O guard usa
+    .strip() além de .lower() (ver docs/FASE2_DECISOES.txt secção 6), por
+    isso variações com espaços/maiúsculas também têm de cair no sentinela.
     """
     called = False
 
@@ -41,7 +50,7 @@ def test_equilibrado_sentinel_skips_semantic_search(monkeypatch):
     results = asyncio.run(
         location_search.find_best_locations(
             location_hint="Porto",
-            environment_type="equilibrado",
+            environment_type=environment_type,
             top_n=1,
             model_client=None,
         )
