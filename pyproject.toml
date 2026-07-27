@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+markers = [
+    "slow: testes de integracao com embeddings reais (descarrega e usa o modelo de sentence-transformers) - excluidos da execucao default, ver README.md",
+]
+addopts = "-m \"not slow\""
