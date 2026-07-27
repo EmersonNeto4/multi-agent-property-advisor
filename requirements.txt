@@ -9,3 +9,5 @@ openai
 httpx
 fastapi
 uvicorn[standard]
+sentence-transformers==5.6.1
+chromadb==1.5.9

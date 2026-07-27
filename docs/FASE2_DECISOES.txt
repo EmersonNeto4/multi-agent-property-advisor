@@ -1,0 +1,179 @@
+FASE 2 — Retrieval semântico no Location Agent (RAG)
+===========================================================
+Registo das decisões técnicas tomadas durante a implementação, com a
+justificação de cada uma. As docstrings no código ficam curtas (resumo do
+que a função faz); o "porquê" de cada decisão fica documentado aqui — no
+mesmo espírito de docs/FASE1_DECISOES.txt.
+
+Objetivo da fase: substituir o keyword_mapping hardcoded (~18 termos) que
+existia em tools/location_search.py por retrieval semântico com embeddings
+multilingues (sentence-transformers) + ChromaDB, sobre uma descrição
+textual por localização gerada a partir de data/portugal_locations.json.
+
+
+1. Design aprovado (Passo 0)
+-----------------------------
+- Documentos a indexar: uma descrição textual por localização (2-3 frases,
+  PT), gerada por TEMPLATE determinístico (não por LLM) a partir dos
+  campos existentes (characteristics, nuts_ii/nuts_iii, population).
+  Motivo de não usar LLM: reprodutível sem chave de API, sem custo, sem
+  variabilidade entre execuções, e sem risco de alucinação (só reformula
+  dados já verificados). Geradas UMA vez por scripts/generate_descriptions.py
+  e commitadas em data/portugal_locations_descriptions.json — não geradas
+  em runtime.
+- Modelo de embeddings: paraphrase-multilingual-MiniLM-L12-v2 (suporta PT
+  nativamente, bom equilíbrio qualidade/velocidade em CPU). Ver secção 3
+  para o benchmark que confirmou esta escolha contra 2 alternativas.
+- Índice: ChromaDB em memória (chromadb.EphemeralClient()), reconstruído
+  a cada arranque do processo — sem persistência em disco. Com 42
+  documentos, construir a coleção depois do modelo carregado custa
+  frações de segundo; persistir traria complexidade (gestão de path,
+  risco de índice desatualizado, entrada extra no .gitignore) sem
+  benefício real a esta escala.
+- Integração: location_hint continua a ser resolvido por
+  tools/data_loader.get_candidate_locations() (exact/fuzzy/region),
+  inalterado — o RAG substitui só o matching de ambiente
+  (characteristics_score), não a resolução de nomes de sítios.
+  tools/data_loader.filter_locations_by_characteristics() fica sem
+  chamadores a partir de tools/location_search.py depois desta fase, mas
+  não foi removida (é usada internamente por get_candidate_locations, e
+  não faz parte do âmbito desta fase mexer em data_loader.py) — fica
+  candidata a remoção numa limpeza futura, quando o retrieval semântico
+  estiver provado em produção.
+- Fallback: se o modelo/índice não carregarem (sem rede, sem cache local),
+  find_best_locations degrada para tratar environment_type como ausente
+  (candidatos por location_hint ou por população; characteristics_score
+  fixo em 0.5). Não há um keyword-matching de emergência — duplicaria a
+  lógica que esta fase existe para remover.
+- CI: testes unitários com o embedder mocked (sem download, sem rede);
+  teste de integração com embeddings reais marcado @pytest.mark.slow,
+  excluído por omissão via addopts no pyproject.toml.
+- Nome do módulo: tools/semantic_search.py.
+
+
+2. Geração das descrições (Passo 1) — v1 e v2
+--------------------------------------------------
+- v1 (primeira versão): frase de identidade (nome + dimensão + região +
+  até 2 adjetivos de mood + população) + frase de geografia + frase de
+  carácter com as restantes tags.
+- Bug encontrado na v1: para localizações com população >= 300000
+  (balde "uma das maiores cidades do país") e tags de mood, a
+  concatenação produzia frases gramaticalmente quebradas (ex: "Vila Nova
+  de Gaia é uma das maiores cidades do país urbana..." — falta de
+  concordância singular/plural). Corrigido inicialmente excluindo mood
+  desse balde (Lisboa/capital já tinha tratamento especial parecido).
+- Bug encontrado na v1: redundância quando "surf" e "praia" coexistem
+  nas tags (ex: Peniche), gerando "praias muito procuradas para o surf...
+  e praias procuradas" na mesma descrição. Corrigido suprimindo "praia"
+  quando "surf" está presente.
+- v2 (revista no Passo 2, depois do benchmark da secção 3): a v1 media
+  bem no cenário aprovado (Algarve/Tavira vs Albufeira), mas queries sem
+  location_hint no dataset completo davam resultados fracos — ex:
+  "quero sossego perto do mar" punha Tavira em 21º/42, atrás de cidades
+  turísticas/vibrantes só por partilharem "litoral"/"praia" no texto.
+  Testou-se reescrever a descrição da Tavira à mão (sem o número de
+  população, com o carácter na primeira frase) e o score subiu ~35% -
+  evidência de que o "ruído" textual (nome, "é uma cidade", contagem de
+  habitantes) dilui o sinal semântico relevante (tranquilo/autêntico)
+  quando pooled num único embedding de frase.
+  Mudanças na v2 (scripts/generate_descriptions.py):
+    * Frase de carácter passa a vir PRIMEIRO (era a última).
+    * Número exato de população removido do texto indexado (mantém-se
+      um descritor por escalão: "pequena cidade"/"cidade"/"uma das
+      maiores cidades do país" — o dado exato continua em
+      data/portugal_locations.json, só não entra no texto embutido).
+    * Consequência boa: já não é preciso tratamento especial de
+      concordância de género para o balde "maiores cidades" nem para
+      "capital" (Lisboa) — todas as tags (incluindo "capital", agora em
+      TAG_PHRASES) passam pelo mesmo mecanismo de frase de carácter.
+      Simplificou o código e eliminou o bug da secção anterior pela
+      raiz, não com mais um caso especial.
+  Resultado da v2 (mesmo modelo, MiniLM): Tavira sobe de 21º para 15º/42
+  em "sossego perto do mar"; no cenário Algarve, a margem Tavira/Albufeira
+  passa de 0.420/0.353 para 0.588/0.394 (mais que duplicou o afastamento).
+
+
+3. Benchmark de modelos de embeddings (Passo 2)
+----------------------------------------------------
+Comparados 3 modelos multilingues, todos com as descrições v2, nas mesmas
+4 queries-exemplo mais o cenário de aceitação (Algarve, 6 municípios,
+query "Algarve, zona sossegada", critério: Tavira à frente de Albufeira).
+Medição de RAM via psutil (RSS do processo), cada modelo num processo
+Python isolado para não contaminar a medição.
+
+    Modelo                              RAM total   Encode 42 docs   Tavira rank*   Algarve: Tavira vs Albufeira
+    -----------------------------------------------------------------------------------------------------------
+    paraphrase-multilingual-MiniLM-L12  826 MB      2.5 s            15/42          0.588 vs 0.394 (Tavira, folgado)
+    intfloat/multilingual-e5-small      884 MB      1.5 s            32/42          0.851 vs 0.855 (Albufeira!)
+    paraphrase-multilingual-mpnet-base  1135 MB     23.8 s           8/42           0.539 vs 0.522 (Tavira, apertado)
+
+    * rank da Tavira em "quero sossego perto do mar", dataset completo (42).
+
+Notas:
+    - Tempos de load (não incluídos na tabela) foram muito afetados por
+      throttling não-autenticado do HF Hub (o e5-small "pequeno" demorou
+      mais a descarregar que o MiniLM) - não são um proxy fiável do
+      tamanho real do modelo, por isso não entraram no critério de decisão.
+    - e5-small é treinado especificamente para retrieval (ao contrário dos
+      outros dois, treinados para paraphrase/STS) e usa os prefixos
+      "query: "/"passage: " documentados pelo autor - mesmo assim, foi o
+      único dos 3 a FALHAR o critério de aceitação (Albufeira à frente da
+      Tavira). Hipótese: o modelo é mais pequeno e pode estar menos bem
+      treinado para nuance semântica em português especificamente,
+      comparado com os dois modelos baseados em XLM-R usados aqui.
+    - mpnet-base-v2 não mostrou vantagem de qualidade consistente sobre o
+      MiniLM (margem de aceitação mais apertada, ~10x mais lento a fazer
+      encode, +309 MB de RAM) - não compensa o custo.
+
+DECISÃO: manter paraphrase-multilingual-MiniLM-L12-v2 (a escolha original
+do Passo 0) com as descrições v2. É o que vence o critério de aceitação
+com a maior margem, e é o mais leve e mais rápido dos 3 testados.
+
+
+4. K de candidatos sem location_hint
+------------------------------------------
+- find_best_locations() usa min(20, top_n*4) candidatos quando não há
+  location_hint (top-K do retrieval semântico substitui o antigo
+  filter_locations_by_characteristics). Foi levantada a questão de subir
+  este K, já que na v1 das descrições a Tavira (21º/42) ficava de fora
+  de um pool de 20.
+- DECISÃO: manter min(20, top_n*4) sem alteração. Dois motivos:
+    (a) A v2 das descrições já resolveu o problema pela raiz - a Tavira
+        passou para 15º/42, dentro do pool de 20 (ver secção 2).
+    (b) Subir K não é grátis: cada candidato adicional passa por
+        evaluate_location(), que faz uma chamada real à API de clima
+        (Open-Meteo) e ao LLM da Groq. Mais K = mais latência e mais
+        custo de API por pedido, não só "rankear com mais margem".
+        Sem um problema concreto que o justifique, não vale a pena esse
+        custo.
+
+
+5. Risco conhecido: RAM em ambiente de deploy (Fase 4)
+------------------------------------------------------------
+- Todos os 3 modelos testados (secção 3) ultrapassam largamente um
+  orçamento de ~512 MB (free tier típico de Render/Railway, alvo da
+  Fase 4): 826-1135 MB de RSS só para o modelo + índice de 42 documentos.
+- A maior parte deste consumo (~700 MB) é overhead do próprio runtime
+  torch/sentence-transformers ao carregar (visível mesmo antes de
+  processar qualquer documento) - não é uma questão de "qual modelo
+  entre estes 3", é estrutural a usar um transformer local via torch
+  nestas condições de memória.
+- NÃO resolvido nesta fase (fora do âmbito - a Fase 2 é sobre qualidade
+  do retrieval, a Fase 4 é sobre deploy). Pistas de mitigação a avaliar
+  quando a Fase 4 arrancar, por ordem provável de esforço/ganho:
+    (a) Exportar o modelo para ONNX quantizado e correr com onnxruntime
+        em vez de torch - deve reduzir para uma fração do RAM atual
+        (centenas baixas de MB), já que evita o overhead do runtime torch
+        completo.
+    (b) Pré-computar os embeddings das 42 descrições offline (commitados,
+        tal como as próprias descrições) - o modelo só precisaria de ficar
+        carregado para embeber a QUERY do utilizador em runtime, não os
+        42 documentos; não reduz o custo do modelo em si, mas simplifica
+        o arranque.
+    (c) Usar uma API de embeddings externa (ex: a própria Groq, se vier a
+        oferecer, ou outro provedor) em vez de correr o modelo localmente
+        - troca RAM por dependência de rede/custo por pedido.
+    (d) Aceitar um tier pago com mais RAM, se as opções acima não forem
+        suficientes ou não fizerem sentido para o âmbito do projeto.
+- Nenhuma destas opções foi implementada agora - fica registado como
+  risco conhecido para quem arrancar a Fase 4.
