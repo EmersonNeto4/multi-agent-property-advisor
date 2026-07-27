@@ -1,9 +1,10 @@
 """
 Gera data/portugal_locations_descriptions.json a partir de
-data/portugal_locations.json: uma descrição textual (2-4 frases, PT) por
+data/portugal_locations.json: uma descrição textual (2-3 frases, PT) por
 localização, usada como documento a indexar pelo retrieval semântico
 (tools/semantic_search.py). Ver docs/FASE2_DECISOES.txt para o porquê de
-gerar por template em vez de pedir a um LLM.
+gerar por template em vez de pedir a um LLM, e para o benchmark que levou
+à v2 deste template (carácter primeiro, sem número de população no texto).
 
 As descrições são geradas UMA vez e commitadas como dado estático — não são
 geradas em runtime. Regenerar sempre que data/portugal_locations.json mudar:
@@ -11,14 +12,16 @@ geradas em runtime. Regenerar sempre que data/portugal_locations.json mudar:
     python scripts/generate_descriptions.py
 
 Abordagem (determinística, sem chamadas a LLM):
-    1. Frase de identidade: nome + dimensão (por população) + região +
-       até 2 adjetivos de "mood" (ex: urbano, tranquilo, turístico,
-       histórico) tirados de characteristics, na ordem em que lá aparecem.
+    1. Frase de carácter: todas as tags de characteristics exceto as de
+       geografia (GEOGRAPHY_TAGS), traduzidas por um dicionário de
+       fragmentos (TAG_PHRASES) e combinadas numa frase "Destaca-se por...".
+       Vem PRIMEIRO porque é o sinal mais importante para o retrieval
+       semântico (ambiente/vibe) - ver benchmark na secção 2 de
+       docs/FASE2_DECISOES.txt.
     2. Frase de geografia: litoral / interior / montanha, mais nota de
        clima frio/neve quando aplicável.
-    3. Frase de carácter: as restantes tags de characteristics (as que não
-       entraram nas frases 1/2), traduzidas por um dicionário de
-       fragmentos (TAG_PHRASES) e combinadas numa frase "Destaca-se por...".
+    3. Frase de identidade: dimensão (por escalão de população, sem o
+       número exato - é ruído para o embedding) e região.
 Cada frase só existe se houver tags que a justifiquem — nunca se inventa
 informação que não esteja nos campos de origem.
 """
@@ -29,30 +32,16 @@ from pathlib import Path
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "portugal_locations.json"
 OUTPUT_PATH = Path(__file__).resolve().parent.parent / "data" / "portugal_locations_descriptions.json"
 
-# Tags usadas como adjetivo na frase de identidade (concordância de género
-# feminina, porque o "tipo" usado é sempre "cidade"/"vila"/"localidade").
-# Tags fora deste dicionário nunca entram na frase 1.
-MOOD_ADJ_FEM = {
-    "urbano": "urbana",
-    "tranquilo": "tranquila",
-    "turístico": "turística",
-    "histórico": "histórica",
-    "vibrante": "vibrante",
-    "cosmopolita": "cosmopolita",
-    "rural": "rural",
-    "residencial": "residencial",
-    "industrial": "industrial",
-    "familiar": "familiar",
-    "multicultural": "multicultural",
-}
-
 # Tags tratadas pela lógica dedicada de geografia/clima (_geography_sentence)
 # - nunca entram na frase de carácter, para não duplicar a mesma ideia.
 GEOGRAPHY_TAGS = {"costeiro", "interior", "montanha", "frio", "neve"}
 
-# Fragmentos de caracterização (frase 3), um por tag. Só as tags aqui
-# presentes (e não consumidas nas frases 1/2) aparecem na frase de carácter.
+# Fragmentos de caracterização (frase 1), um por tag. Todas as tags que não
+# sejam de geografia passam por aqui - não há mais distinção entre "mood" e
+# "carácter": simplifica o template e evita problemas de concordância de
+# género (ex: "uma das maiores cidades do país urbana", corrigido na v1).
 TAG_PHRASES = {
+    "capital": "estatuto de capital do país",
     "urbano": "ambiente urbano",
     "vibrante": "vida vibrante e animada",
     "histórico": "um centro histórico relevante",
@@ -105,10 +94,6 @@ TAG_PHRASES = {
 }
 
 
-def _format_population(population: int) -> str:
-    return f"{population:,}".replace(",", " ")
-
-
 def _size_descriptor(population: int) -> str:
     if population >= 300000:
         return "uma das maiores cidades do país"
@@ -146,43 +131,8 @@ def _geography_sentence(chars: set) -> str:
     return (base + climate).strip()
 
 
-def _identity_sentence(loc: dict, chars_ordered: list, used: set) -> str:
-    name = loc["name"]
-    population = loc["population"]
-    region = _region_part(loc)
-
-    if "capital" in chars_ordered:
-        used.add("capital")
-        return (
-            f"{name} é a capital de Portugal e uma das maiores cidades do país, "
-            f"na região {region}, com cerca de {_format_population(population)} habitantes."
-        )
-
-    # Adjetivos de mood só entram na frase de identidade até "uma cidade"/
-    # "uma pequena cidade" (concordância no singular). No balde "uma das
-    # maiores cidades do país" a concordância teria de ser no plural
-    # ("... cidades urbanas do país") - para não complicar a gramática por
-    # causa de ~2 localizações, esses tags ficam para a frase de carácter,
-    # tal como já acontece com "capital" acima.
-    mood = []
-    if population < 300000:
-        for tag in chars_ordered:
-            if tag in MOOD_ADJ_FEM and tag not in used:
-                mood.append(MOOD_ADJ_FEM[tag])
-                used.add(tag)
-            if len(mood) == 2:
-                break
-
-    size = _size_descriptor(population)
-    mood_part = f" {mood[0]}" if len(mood) == 1 else ""
-    if len(mood) == 2:
-        mood_part = f" {mood[0]} e {mood[1]}"
-
-    return f"{name} é {size}{mood_part} na região {region}, com cerca de {_format_population(population)} habitantes."
-
-
-def _character_sentence(chars_ordered: list, used: set, lead_in_used: bool) -> str:
-    remaining = [c for c in chars_ordered if c not in used and c not in GEOGRAPHY_TAGS]
+def _character_sentence(name: str, chars_ordered: list) -> str:
+    remaining = [c for c in chars_ordered if c not in GEOGRAPHY_TAGS]
 
     # "surf" já implica praia - evita repetir a mesma ideia duas vezes
     # (ex: Peniche tem tags "surf" e "praia" em simultâneo).
@@ -198,26 +148,24 @@ def _character_sentence(chars_ordered: list, used: set, lead_in_used: bool) -> s
     else:
         joined = ", ".join(phrases[:-1]) + " e " + phrases[-1]
 
-    verb = "Destaca-se ainda por" if lead_in_used else "Destaca-se por"
-    return f"{verb} {joined}."
+    return f"{name} destaca-se por {joined}."
+
+
+def _identity_sentence(loc: dict) -> str:
+    size = _size_descriptor(loc["population"])
+    region = _region_part(loc)
+    return f"É {size}, na região {region}."
 
 
 def generate_description(loc: dict) -> str:
     chars_ordered = loc["characteristics"]
     chars_set = set(chars_ordered)
-    used = set()
 
-    identity = _identity_sentence(loc, chars_ordered, used)
+    character = _character_sentence(loc["name"], chars_ordered)
     geography = _geography_sentence(chars_set)
-    used |= GEOGRAPHY_TAGS & chars_set
-    character = _character_sentence(chars_ordered, used, lead_in_used=bool(used - (GEOGRAPHY_TAGS & chars_set)))
+    identity = _identity_sentence(loc)
 
-    sentences = [identity]
-    if geography:
-        sentences.append(geography)
-    if character:
-        sentences.append(character)
-
+    sentences = [s for s in (character, geography, identity) if s]
     return " ".join(sentences)
 
 

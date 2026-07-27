@@ -1,170 +1,170 @@
 {
   "pt_norte_porto": {
     "name": "Porto",
-    "description": "Porto é uma cidade urbana e vibrante na região Norte (Área Metropolitana do Porto), com cerca de 237 591 habitantes. Está localizada no litoral. Destaca-se ainda por um centro histórico relevante."
+    "description": "Porto destaca-se por ambiente urbano, vida vibrante e animada e um centro histórico relevante. Está localizada no litoral. É uma cidade, na região Norte (Área Metropolitana do Porto)."
   },
   "pt_norte_braga": {
     "name": "Braga",
-    "description": "Braga é uma cidade urbana e histórica na região Norte (Cávado), com cerca de 193 333 habitantes. Destaca-se ainda por população jovem e forte presença universitária."
+    "description": "Braga destaca-se por ambiente urbano, um centro histórico relevante, população jovem e forte presença universitária. É uma cidade, na região Norte (Cávado)."
   },
   "pt_norte_guimaraes": {
     "name": "Guimarães",
-    "description": "Guimarães é uma cidade histórica e tranquila na região Norte (Ave), com cerca de 158 124 habitantes. Destaca-se ainda por oferta cultural ativa."
+    "description": "Guimarães destaca-se por um centro histórico relevante, oferta cultural ativa e ambiente calmo e tranquilo. É uma cidade, na região Norte (Ave)."
   },
   "pt_norte_viana_castelo": {
     "name": "Viana do Castelo",
-    "description": "Viana do Castelo é uma cidade tranquila na região Norte (Alto Minho), com cerca de 88 631 habitantes. Está localizada no litoral. Destaca-se ainda por proximidade à natureza."
+    "description": "Viana do Castelo destaca-se por ambiente calmo e tranquilo e proximidade à natureza. Está localizada no litoral. É uma cidade, na região Norte (Alto Minho)."
   },
   "pt_centro_coimbra": {
     "name": "Coimbra",
-    "description": "Coimbra é uma cidade histórica na região Centro (Região de Coimbra), com cerca de 143 396 habitantes. Destaca-se ainda por forte presença universitária, oferta cultural ativa e população jovem."
+    "description": "Coimbra destaca-se por forte presença universitária, um centro histórico relevante, oferta cultural ativa e população jovem. É uma cidade, na região Centro (Região de Coimbra)."
   },
   "pt_centro_aveiro": {
     "name": "Aveiro",
-    "description": "Aveiro é uma cidade tranquila na região Centro (Região de Aveiro), com cerca de 78 450 habitantes. Está localizada no litoral. Destaca-se ainda por canais navegáveis característicos e forte presença universitária."
+    "description": "Aveiro destaca-se por ambiente calmo e tranquilo, canais navegáveis característicos e forte presença universitária. Está localizada no litoral. É uma cidade, na região Centro (Região de Aveiro)."
   },
   "pt_centro_viseu": {
     "name": "Viseu",
-    "description": "Viseu é uma cidade tranquila e familiar na região Centro (Viseu Dão Lafões), com cerca de 99 593 habitantes. É uma zona de interior, longe do litoral."
+    "description": "Viseu destaca-se por ambiente calmo e tranquilo e perfil familiar. É uma zona de interior, longe do litoral. É uma cidade, na região Centro (Viseu Dão Lafões)."
   },
   "pt_centro_leiria": {
     "name": "Leiria",
-    "description": "Leiria é uma cidade urbana na região Centro (Região de Leiria), com cerca de 128 640 habitantes. Destaca-se ainda por atividade comercial relevante e crescimento urbano recente."
+    "description": "Leiria destaca-se por ambiente urbano, atividade comercial relevante e crescimento urbano recente. É uma cidade, na região Centro (Região de Leiria)."
   },
   "pt_centro_castelo_branco": {
     "name": "Castelo Branco",
-    "description": "Castelo Branco é uma cidade tranquila na região Centro (Beira Baixa), com cerca de 56 109 habitantes. É uma zona de interior, longe do litoral. Destaca-se ainda por proximidade à natureza."
+    "description": "Castelo Branco destaca-se por ambiente calmo e tranquilo e proximidade à natureza. É uma zona de interior, longe do litoral. É uma cidade, na região Centro (Beira Baixa)."
   },
   "pt_lisboa_lisboa": {
     "name": "Lisboa",
-    "description": "Lisboa é a capital de Portugal e uma das maiores cidades do país, na região Área Metropolitana de Lisboa, com cerca de 505 526 habitantes. Está localizada no litoral. Destaca-se ainda por ambiente urbano, vida vibrante e animada e carácter cosmopolita."
+    "description": "Lisboa destaca-se por estatuto de capital do país, ambiente urbano, vida vibrante e animada e carácter cosmopolita. Está localizada no litoral. É uma das maiores cidades do país, na região Área Metropolitana de Lisboa."
   },
   "pt_lisboa_cascais": {
     "name": "Cascais",
-    "description": "Cascais é uma cidade turística na região Área Metropolitana de Lisboa, com cerca de 206 479 habitantes. Está localizada no litoral. Destaca-se ainda por praias procuradas e oferta turística de luxo."
+    "description": "Cascais destaca-se por praias procuradas, oferta turística de luxo e forte vocação turística. Está localizada no litoral. É uma cidade, na região Área Metropolitana de Lisboa."
   },
   "pt_lisboa_sintra": {
     "name": "Sintra",
-    "description": "Sintra é uma das maiores cidades do país na região Área Metropolitana de Lisboa, com cerca de 377 835 habitantes. É uma zona de interior, de relevo montanhoso. Destaca-se por um centro histórico relevante, proximidade à natureza e forte vocação turística."
+    "description": "Sintra destaca-se por um centro histórico relevante, proximidade à natureza e forte vocação turística. É uma zona de interior, de relevo montanhoso. É uma das maiores cidades do país, na região Área Metropolitana de Lisboa."
   },
   "pt_lisboa_almada": {
     "name": "Almada",
-    "description": "Almada é uma cidade urbana e residencial na região Área Metropolitana de Lisboa, com cerca de 174 030 habitantes. Está localizada no litoral."
+    "description": "Almada destaca-se por ambiente urbano e carácter predominantemente residencial. Está localizada no litoral. É uma cidade, na região Área Metropolitana de Lisboa."
   },
   "pt_lisboa_setubal": {
     "name": "Setúbal",
-    "description": "Setúbal é uma cidade industrial na região Área Metropolitana de Lisboa, com cerca de 123 519 habitantes. Está localizada no litoral. Destaca-se ainda por praias procuradas e proximidade à natureza."
+    "description": "Setúbal destaca-se por atividade industrial relevante, praias procuradas e proximidade à natureza. Está localizada no litoral. É uma cidade, na região Área Metropolitana de Lisboa."
   },
   "pt_lisboa_odivelas": {
     "name": "Odivelas",
-    "description": "Odivelas é uma cidade residencial e urbana na região Área Metropolitana de Lisboa, com cerca de 144 549 habitantes. Destaca-se ainda por perfil familiar."
+    "description": "Odivelas destaca-se por carácter predominantemente residencial, ambiente urbano e perfil familiar. É uma cidade, na região Área Metropolitana de Lisboa."
   },
   "pt_alentejo_evora": {
     "name": "Évora",
-    "description": "Évora é uma cidade histórica e tranquila na região Alentejo (Alentejo Central), com cerca de 56 596 habitantes. Destaca-se ainda por património histórico classificado e oferta cultural ativa."
+    "description": "Évora destaca-se por um centro histórico relevante, património histórico classificado, ambiente calmo e tranquilo e oferta cultural ativa. É uma cidade, na região Alentejo (Alentejo Central)."
   },
   "pt_alentejo_beja": {
     "name": "Beja",
-    "description": "Beja é uma cidade tranquila e rural na região Alentejo (Baixo Alentejo), com cerca de 35 854 habitantes. Destaca-se ainda por clima quente durante grande parte do ano."
+    "description": "Beja destaca-se por ambiente calmo e tranquilo, ambiente rural e clima quente durante grande parte do ano. É uma cidade, na região Alentejo (Baixo Alentejo)."
   },
   "pt_alentejo_portalegre": {
     "name": "Portalegre",
-    "description": "Portalegre é uma pequena cidade tranquila na região Alentejo (Alto Alentejo), com cerca de 24 930 habitantes. É uma zona de interior, de relevo montanhoso. Destaca-se ainda por proximidade à natureza."
+    "description": "Portalegre destaca-se por ambiente calmo e tranquilo e proximidade à natureza. É uma zona de interior, de relevo montanhoso. É uma pequena cidade, na região Alentejo (Alto Alentejo)."
   },
   "pt_algarve_faro": {
     "name": "Faro",
-    "description": "Faro é uma cidade turística e vibrante na região Algarve, com cerca de 64 560 habitantes. Está localizada no litoral. Destaca-se ainda por praias procuradas e muitas horas de sol."
+    "description": "Faro destaca-se por forte vocação turística, praias procuradas, muitas horas de sol e vida vibrante e animada. Está localizada no litoral. É uma cidade, na região Algarve."
   },
   "pt_algarve_portimao": {
     "name": "Portimão",
-    "description": "Portimão é uma cidade turística e vibrante na região Algarve, com cerca de 55 614 habitantes. Está localizada no litoral. Destaca-se ainda por praias procuradas."
+    "description": "Portimão destaca-se por forte vocação turística, praias procuradas e vida vibrante e animada. Está localizada no litoral. É uma cidade, na região Algarve."
   },
   "pt_algarve_albufeira": {
     "name": "Albufeira",
-    "description": "Albufeira é uma cidade turística e vibrante na região Algarve, com cerca de 40 828 habitantes. Destaca-se ainda por praias procuradas e vida noturna intensa."
+    "description": "Albufeira destaca-se por forte vocação turística, praias procuradas, vida vibrante e animada e vida noturna intensa. É uma cidade, na região Algarve."
   },
   "pt_algarve_lagos": {
     "name": "Lagos",
-    "description": "Lagos é uma cidade histórica e turística na região Algarve, com cerca de 31 049 habitantes. Está localizada no litoral. Destaca-se ainda por praias procuradas."
+    "description": "Lagos destaca-se por um centro histórico relevante, praias procuradas e forte vocação turística. Está localizada no litoral. É uma cidade, na região Algarve."
   },
   "pt_algarve_tavira": {
     "name": "Tavira",
-    "description": "Tavira é uma pequena cidade tranquila e histórica na região Algarve, com cerca de 26 167 habitantes. Está localizada no litoral. Destaca-se ainda por carácter autêntico, pouco massificado."
+    "description": "Tavira destaca-se por ambiente calmo e tranquilo, um centro histórico relevante e carácter autêntico, pouco massificado. Está localizada no litoral. É uma pequena cidade, na região Algarve."
   },
   "pt_norte_vila_nova_gaia": {
     "name": "Vila Nova de Gaia",
-    "description": "Vila Nova de Gaia é uma das maiores cidades do país na região Norte (Área Metropolitana do Porto), com cerca de 302 295 habitantes. Está localizada no litoral. Destaca-se por ambiente urbano e tradição ligada ao vinho do Porto."
+    "description": "Vila Nova de Gaia destaca-se por ambiente urbano e tradição ligada ao vinho do Porto. Está localizada no litoral. É uma das maiores cidades do país, na região Norte (Área Metropolitana do Porto)."
   },
   "pt_norte_matosinhos": {
     "name": "Matosinhos",
-    "description": "Matosinhos é uma cidade urbana na região Norte (Área Metropolitana do Porto), com cerca de 175 478 habitantes. Está localizada no litoral. Destaca-se ainda por praias procuradas e tradição gastronómica reconhecida."
+    "description": "Matosinhos destaca-se por praias procuradas, tradição gastronómica reconhecida e ambiente urbano. Está localizada no litoral. É uma cidade, na região Norte (Área Metropolitana do Porto)."
   },
   "pt_norte_vila_real": {
     "name": "Vila Real",
-    "description": "Vila Real é uma cidade tranquila na região Norte (Douro), com cerca de 51 850 habitantes. É uma zona de interior, de relevo montanhoso. Destaca-se ainda por forte presença universitária e tradição vinícola."
+    "description": "Vila Real destaca-se por ambiente calmo e tranquilo, forte presença universitária e tradição vinícola. É uma zona de interior, de relevo montanhoso. É uma cidade, na região Norte (Douro)."
   },
   "pt_centro_figueira_foz": {
     "name": "Figueira da Foz",
-    "description": "Figueira da Foz é uma cidade na região Centro (Região de Coimbra), com cerca de 62 125 habitantes. Está localizada no litoral. Destaca-se por praias procuradas, vocação de veraneio e casino e oferta de lazer noturno."
+    "description": "Figueira da Foz destaca-se por praias procuradas, vocação de veraneio e casino e oferta de lazer noturno. Está localizada no litoral. É uma cidade, na região Centro (Região de Coimbra)."
   },
   "pt_centro_guarda": {
     "name": "Guarda",
-    "description": "Guarda é uma cidade tranquila na região Centro (Beiras e Serra da Estrela), com cerca de 42 541 habitantes. É uma zona de interior, de relevo montanhoso. O clima é frio, com possibilidade de neve no inverno."
+    "description": "Guarda destaca-se por ambiente calmo e tranquilo. É uma zona de interior, de relevo montanhoso. O clima é frio, com possibilidade de neve no inverno. É uma cidade, na região Centro (Beiras e Serra da Estrela)."
   },
   "pt_lisboa_loures": {
     "name": "Loures",
-    "description": "Loures é uma cidade residencial e urbana na região Área Metropolitana de Lisboa, com cerca de 199 494 habitantes. Destaca-se ainda por custo de vida mais acessível."
+    "description": "Loures destaca-se por carácter predominantemente residencial, ambiente urbano e custo de vida mais acessível. É uma cidade, na região Área Metropolitana de Lisboa."
   },
   "pt_lisboa_amadora": {
     "name": "Amadora",
-    "description": "Amadora é uma cidade residencial e urbana na região Área Metropolitana de Lisboa, com cerca de 171 719 habitantes. Destaca-se ainda por população multicultural."
+    "description": "Amadora destaca-se por carácter predominantemente residencial, ambiente urbano e população multicultural. É uma cidade, na região Área Metropolitana de Lisboa."
   },
   "pt_lisboa_oeiras": {
     "name": "Oeiras",
-    "description": "Oeiras é uma cidade na região Área Metropolitana de Lisboa, com cerca de 172 120 habitantes. Está localizada no litoral. Destaca-se por polo de empresas tecnológicas, boa qualidade de vida e polo empresarial relevante."
+    "description": "Oeiras destaca-se por polo de empresas tecnológicas, boa qualidade de vida e polo empresarial relevante. Está localizada no litoral. É uma cidade, na região Área Metropolitana de Lisboa."
   },
   "pt_norte_barcelos": {
     "name": "Barcelos",
-    "description": "Barcelos é uma cidade tranquila na região Norte (Cávado), com cerca de 120 391 habitantes. Destaca-se ainda por tradição de artesanato, carácter tradicional e feiras e mercados tradicionais."
+    "description": "Barcelos destaca-se por tradição de artesanato, carácter tradicional, feiras e mercados tradicionais e ambiente calmo e tranquilo. É uma cidade, na região Norte (Cávado)."
   },
   "pt_norte_gondomar": {
     "name": "Gondomar",
-    "description": "Gondomar é uma cidade residencial e urbana na região Norte (Área Metropolitana do Porto), com cerca de 168 027 habitantes. Destaca-se ainda por tradição na indústria de joalharia."
+    "description": "Gondomar destaca-se por carácter predominantemente residencial, ambiente urbano e tradição na indústria de joalharia. É uma cidade, na região Norte (Área Metropolitana do Porto)."
   },
   "pt_norte_santo_tirso": {
     "name": "Santo Tirso",
-    "description": "Santo Tirso é uma cidade industrial e tranquila na região Norte (Área Metropolitana do Porto), com cerca de 71 530 habitantes. Destaca-se ainda por tradição na indústria têxtil."
+    "description": "Santo Tirso destaca-se por tradição na indústria têxtil, atividade industrial relevante e ambiente calmo e tranquilo. É uma cidade, na região Norte (Área Metropolitana do Porto)."
   },
   "pt_centro_caldas_rainha": {
     "name": "Caldas da Rainha",
-    "description": "Caldas da Rainha é uma cidade tranquila na região Centro (Oeste), com cerca de 51 729 habitantes. Destaca-se ainda por tradição de cerâmica artística, termas e águas termais e cena artística ativa."
+    "description": "Caldas da Rainha destaca-se por tradição de cerâmica artística, termas e águas termais, cena artística ativa e ambiente calmo e tranquilo. É uma cidade, na região Centro (Oeste)."
   },
   "pt_centro_tomar": {
     "name": "Tomar",
-    "description": "Tomar é uma cidade histórica e tranquila na região Centro (Médio Tejo), com cerca de 40 677 habitantes. Destaca-se ainda por património ligado à Ordem dos Templários e oferta cultural ativa."
+    "description": "Tomar destaca-se por um centro histórico relevante, património ligado à Ordem dos Templários, oferta cultural ativa e ambiente calmo e tranquilo. É uma cidade, na região Centro (Médio Tejo)."
   },
   "pt_alentejo_sines": {
     "name": "Sines",
-    "description": "Sines é uma pequena cidade industrial na região Alentejo (Alentejo Litoral), com cerca de 14 238 habitantes. Está localizada no litoral. Destaca-se ainda por porto marítimo relevante e praias procuradas."
+    "description": "Sines destaca-se por atividade industrial relevante, porto marítimo relevante e praias procuradas. Está localizada no litoral. É uma pequena cidade, na região Alentejo (Alentejo Litoral)."
   },
   "pt_centro_covilha": {
     "name": "Covilhã",
-    "description": "Covilhã é uma cidade na região Centro (Beiras e Serra da Estrela), com cerca de 51 797 habitantes. É uma zona de interior, de relevo montanhoso. O clima é frio, com possibilidade de neve no inverno. Destaca-se por forte presença universitária e estância de esqui na proximidade."
+    "description": "Covilhã destaca-se por forte presença universitária e estância de esqui na proximidade. É uma zona de interior, de relevo montanhoso. O clima é frio, com possibilidade de neve no inverno. É uma cidade, na região Centro (Beiras e Serra da Estrela)."
   },
   "pt_norte_povoa_varzim": {
     "name": "Póvoa de Varzim",
-    "description": "Póvoa de Varzim é uma cidade na região Norte (Área Metropolitana do Porto), com cerca de 63 408 habitantes. Está localizada no litoral. Destaca-se por praias procuradas, casino e oferta de lazer noturno e vocação de veraneio."
+    "description": "Póvoa de Varzim destaca-se por praias procuradas, casino e oferta de lazer noturno e vocação de veraneio. Está localizada no litoral. É uma cidade, na região Norte (Área Metropolitana do Porto)."
   },
   "pt_algarve_olhao": {
     "name": "Olhão",
-    "description": "Olhão é uma cidade na região Algarve, com cerca de 45 396 habitantes. Está localizada no litoral. Destaca-se por tradição piscatória, proximidade à Ria Formosa e carácter autêntico, pouco massificado."
+    "description": "Olhão destaca-se por tradição piscatória, proximidade à Ria Formosa e carácter autêntico, pouco massificado. Está localizada no litoral. É uma cidade, na região Algarve."
   },
   "pt_centro_peniche": {
     "name": "Peniche",
-    "description": "Peniche é uma pequena cidade na região Centro (Oeste), com cerca de 27 753 habitantes. Está localizada no litoral. Destaca-se por praias muito procuradas para o surf e tradição piscatória."
+    "description": "Peniche destaca-se por praias muito procuradas para o surf e tradição piscatória. Está localizada no litoral. É uma pequena cidade, na região Centro (Oeste)."
   },
   "pt_norte_lamego": {
     "name": "Lamego",
-    "description": "Lamego é uma pequena cidade histórica e tranquila na região Norte (Douro), com cerca de 26 691 habitantes. Destaca-se ainda por tradição vinícola e ligação à região vinhateira do Douro."
+    "description": "Lamego destaca-se por um centro histórico relevante, tradição vinícola, ligação à região vinhateira do Douro e ambiente calmo e tranquilo. É uma pequena cidade, na região Norte (Douro)."
   }
 }
