@@ -100,7 +100,7 @@ Fase 3 vai executar):
   sistema multi-agente é mocked e o `model_client` do lifespan é
   substituído via `app.dependency_overrides`.
 - `tests/test_semantic_search.py` — módulo de retrieval, com o modelo de
-  embeddings e o ChromaDB mocked (sem download).
+  embeddings mocked (sem download).
 - `tests/test_location_search.py` — integração do retrieval em
   `find_best_locations`.
 
@@ -128,10 +128,13 @@ A Fase 2 substituiu esse mapeamento por **retrieval semântico**:
   (`data/portugal_locations_descriptions.json`), gerada por template
   determinístico a partir do dataset — regenerável com
   `python scripts/generate_descriptions.py`.
-- Essas descrições são indexadas num **ChromaDB em memória**, usando
-  embeddings do modelo multilingue **`paraphrase-multilingual-MiniLM-L12-v2`**
-  (`sentence-transformers`), escolhido após benchmark contra
-  `multilingual-e5-small` e `mpnet-base-v2`.
+- Essas descrições são embutidas com o modelo multilingue
+  **`paraphrase-multilingual-MiniLM-L12-v2`** (`sentence-transformers`),
+  escolhido após benchmark contra `multilingual-e5-small` e
+  `mpnet-base-v2`, e ficam numa matriz **numpy** em memória. Com 42
+  vetores, a pesquisa é uma multiplicação matriz-vetor (a Fase 2 usava
+  ChromaDB aqui — ver
+  [docs/FASE2.5_DECISOES.txt](docs/FASE2.5_DECISOES.txt)).
 - A descrição de ambiente do utilizador é comparada por similaridade de
   cosseno com as 42 descrições, e o resultado alimenta o
   `characteristics_score` de cada localização.
@@ -201,8 +204,7 @@ de engenharia/deployment além do algoritmo de recomendação em si:
   para as decisões técnicas tomadas (secção 11 regista as correções de
   dívida técnica feitas depois da Fase 1, antes de arrancar a Fase 3).
 - **Fase 2 (concluída)** — substituído o mapeamento por keywords no
-  Location Agent por RAG com embeddings semânticos (sentence-transformers
-  + Chroma) — ver secção 6 e
+  Location Agent por RAG com embeddings semânticos — ver secção 6 e
   [docs/FASE2_DECISOES.txt](docs/FASE2_DECISOES.txt), que inclui o
   benchmark de modelos e o consumo de memória medido (relevante para a
   Fase 4).

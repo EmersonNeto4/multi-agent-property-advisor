@@ -1,0 +1,204 @@
+FASE 2.5 — Emagrecimento do runtime (pré-requisito da Fase 3)
+===========================================================
+Registo das decisões técnicas tomadas durante a implementação, com a
+justificação de cada uma. As docstrings no código ficam curtas (resumo do
+que a função faz); o "porquê" de cada decisão fica documentado aqui — no
+mesmo espírito de docs/FASE1_DECISOES.txt e docs/FASE2_DECISOES.txt.
+
+Documento em construção: fecha no Passo 6, com a fase.
+
+Objetivo da fase: pôr a app a caber em 512 MB de RAM (free tier do Render),
+para a Fase 4 poder ter demo live sem custo mensal recorrente. Critérios de
+aceitação:
+    1. RSS em estado estacionário < 400 MB, medido em Linux. A folga de
+       ~25% sobre os 512 MB é deliberada: o pico é sempre superior ao idle,
+       e é o pico que causa OOM kill.
+    2. Paridade de resultados nas queries de demo da Fase 2 (secção 8 de
+       docs/FASE2_DECISOES.txt).
+    3. pytest continua a passar sem .env, sem rede e a partir de qualquer
+       diretório.
+
+Esta fase vem ANTES da Fase 3 de propósito: uma imagem Docker com torch são
+2-3 GB, sem torch cai para menos de 1 GB. Escrever o Dockerfile primeiro
+obrigaria a reescrevê-lo depois.
+
+
+1. Versão de Python fixada: 3.12
+--------------------------------------
+- O repositório não declarava versão de Python em lado nenhum. O profiling
+  desta fase só é comparável com a imagem Docker da Fase 3 se for tudo a
+  mesma versão, por isso fica fixada agora e num sítio único
+  (requires-python em pyproject.toml).
+- Porquê 3.12 e não a mais recente: é a versão mais recente com wheels
+  estáveis em TODAS as dependências. O onnxruntime — que passa a ser a
+  dependência central do runtime a partir do Passo 4 — ainda não tinha
+  wheels para 3.14. O 3.12 tem EOL em 2028, o que cobre com folga a vida
+  útil do demo.
+- pyproject.toml passa a ter uma tabela [project] mínima (name, version,
+  requires-python) e continua SEM [build-system]: o projeto não é
+  distribuído como pacote instalável, a tabela existe só como declaração
+  verificável da versão suportada.
+
+
+2. Metodologia de profiling (Passo 1)
+-------------------------------------------
+Ferramenta: scripts/profile_memory.py (novo). Decisões:
+
+- RSS lido de /proc/self/statm, NÃO tracemalloc. O tracemalloc só vê
+  alocações do heap do Python e é cego aos pesos do modelo e às arenas de
+  alocação das bibliotecas nativas (torch, onnxruntime) — precisamente o
+  que esta fase quer medir. O RSS é o que o OOM killer vê.
+- Cada etapa corre num SUBPROCESSO novo, importando cumulativamente tudo
+  até essa etapa. Medir várias etapas no mesmo processo contaminaria os
+  deltas (imports partilhados, alocador que não devolve memória ao SO).
+  Mesmo cuidado que o benchmark de modelos da Fase 2 (secção 3).
+- Thread a amostrar o RSS a cada 50 ms nas etapas de encode/load, para
+  apanhar o PICO: uma leitura antes/depois perde-o, e é o pico que causa
+  OOM kill. ru_maxrss (getrusage) — o mesmo valor que
+  "/usr/bin/time -v" reporta em "Maximum resident set size" — fica
+  registado como confirmação independente, vinda do kernel e não da nossa
+  amostragem.
+- Etapas que não existam no estado atual do código são reportadas como
+  "skipped" em vez de rebentar. É o que permite ao Passo 5 correr o MESMO
+  script sem alterações e comparar com docs/bench/rss_baseline.json.
+- Medição em contentor python:3.12-slim (não em WSL2 direto): é o ambiente
+  de referência da Fase 4, não polui o WSL com 2,5 GB de torch, e a imagem
+  fica guardada para o Passo 5 repetir exatamente o mesmo.
+- Saída em JSON commitado (docs/bench/), não só impressa: é a prova do
+  ganho da fase e o material do README da Fase 4.
+
+
+3. Medição base (Passo 1) — resultados
+--------------------------------------------
+Em contentor python:3.12-slim. Valores em MB de RSS.
+
+    Etapa                      requirements.txt   com torch CPU-only
+                                   (wheel CUDA)
+    ----------------------------------------------------------------
+    interpretador                        13.5              13.5
+    + numpy                              31.4              31.5
+    + sklearn                           121.9             124.5
+    + fastapi/autogen (api.main)        183.9             185.6
+    + chromadb                          202.3             203.8
+    + onnxruntime                       213.7             215.7
+    + torch                             662.4             393.5
+    + load do modelo                   1500.5            1126.8
+    + encode dos 42 docs (pico)        1575.0            1234.7
+    + encode da query                  1575.3            1235.6
+    ESTADO ESTACIONÁRIO                1575.5            1235.3
+
+Decomposição do load do modelo (medida à parte, wheel CPU):
+    import torch                 206 MB
+    import transformers           27 MB
+    import sentence_transformers 159 MB
+    pesos do modelo              630 MB
+O modelo tem 117.7 M parâmetros, dos quais 96.0 M (82%) são a tabela de
+embeddings do vocabulário (250037 x 384). fp32 = 449 MB, int8 = 112 MB.
+
+3.1 Porquê 1575 MB agora e 826 MB na Fase 2 (secção 3 e 5 do FASE2)
+- Não foi erro de medição de nenhuma das duas. A Fase 2 mediu em Windows,
+  esta fase mede em Linux, e `pip install torch` instala wheels diferentes
+  nos dois: em Linux vem por omissão a build CUDA (2.13.0+cu130, com
+  nvidia-cublas/cudnn/nccl/cusolver), em Windows a build CPU.
+- É a confirmação empírica da regra "mede no ambiente de deploy": o número
+  da Fase 2 não estava errado para o ambiente onde foi tirado, estava
+  errado para o ambiente que interessa. O erro de 749 MB (91%) seria
+  suficiente para dar a fase por viável e só descobrir o contrário com um
+  OOM kill em produção.
+- Medida a build CPU-only como controlo, para responder à objeção óbvia
+  ("usa o wheel CPU e resolve-se"): poupa 340 MB e fica em 1235 MB, ainda
+  2.4x acima dos 512 MB do free tier. Trocar de wheel é uma otimização a
+  aplicar na Fase 3 de qualquer forma, não uma alternativa a esta fase.
+
+3.2 Veredicto sobre a tese do Passo 0
+- CONFIRMADO — torch -> ONNX int8 é a fase inteira: import do torch + load
+  do modelo = 1287 MB dos 1575 (82%). Tudo o resto somado dá 288 MB.
+- REFUTADO — Chroma -> numpy não é um ganho de memória: 18.4 MB, 1.2% do
+  total (ver secção 4).
+- CONFIRMADO mas modesto — pré-computar o corpus poupa 74-108 MB de PICO
+  transitório (o encode dos 42 documentos) e o tempo de arranque. O valor
+  real é ser o habilitador do Passo 4: sem ele, o runtime continuaria a
+  precisar de codificar 42 documentos e não uma frase.
+- Não previsto: o onnxruntime custa só 11.4 MB de import (boa notícia para
+  o Passo 4), e o scikit-learn custa 90.5 MB — mais do que FastAPI +
+  AutoGen + agentes + tools juntos (62 MB). Ver secção 6.
+
+
+4. ChromaDB -> numpy (Passo 2)
+------------------------------------
+- HIPÓTESE ORIGINAL (Passo 0): tirar o ChromaDB seria um ganho de memória
+  relevante. REFUTADA pela medição: 18.4 MB, ruído ao lado dos 1287 MB do
+  torch. Fica registada a hipótese e a sua refutação, e não só a conclusão
+  — o registo de "medimos e estávamos errados sobre o porquê" é parte do
+  valor deste documento.
+- A mudança MANTÉM-SE, por três razões que a medição não contradiz:
+    (a) Árvore de dependências: o chromadb arrasta grpcio, opentelemetry,
+        kubernetes, posthog, pypika. Peso de imagem e tempo de build na
+        Fase 3, para um serviço cujo índice é uma matriz 42 x 384.
+    (b) Elimina a reconstrução do índice em cada arranque do processo.
+    (c) Simplifica os testes: desaparece o FakeCollection/FakeChromaClient,
+        que só existia porque o EphemeralClient mantém as coleções
+        registadas por nome dentro do mesmo processo e dava "Collection
+        already exists" no 2º teste (secção 9 do FASE2_DECISOES).
+- Implementação: os embeddings ficam numa matriz numpy (42, 384) float32,
+  normalizada por linha. Documentos e query normalizados -> o produto
+  interno É a similaridade de cosseno, e a pesquisa exaustiva é uma única
+  multiplicação matriz-vetor (~16k multiplicações). Um índice aproximado
+  (HNSW) não tem nada a acelerar a esta escala.
+- Ordenação entre empates exatos: np.argsort com kind="stable", para a
+  ordem ser determinística (a ordem do ficheiro de descrições) em vez de
+  arbitrária. O ChromaDB não dava esta garantia.
+- PARIDADE VERIFICADA (critério de aceitação do passo, definido no Passo 0
+  como ~1e-6): comparados os scores do módulo antigo (extraído do git, não
+  reimplementado) e do novo, em 5 queries x 42 localizações:
+      ordenações diferentes ................ 0
+      maior diferença absoluta ............. 1.788e-07
+  A Tavira em "Algarve, zona sossegada" dá 0.588283, contra os 0.588
+  documentados na secção 3 do FASE2_DECISOES — bate certo com o registo da
+  fase anterior, não só com a implementação anterior.
+- A escala dos scores não mudou (continua a similaridade de cosseno crua,
+  ~0.2-0.6 para bons matches). Vale tudo o que a secção 6 do
+  FASE2_DECISOES diz sobre não tentar "corrigir" isto para uma escala
+  0.5-1.0.
+- requirements.txt: removido chromadb. sentence-transformers mantém-se até
+  ao Passo 4.
+- Limpeza associada, em commit separado: removida
+  filter_locations_by_characteristics de tools/data_loader.py, o ramo
+  morto que a chamava, o parâmetro environment_keywords de
+  get_candidate_locations (que ficava sem qualquer efeito) e a entrada em
+  tools/__init__.py. Era a pendência registada na secção 1 do
+  FASE2_DECISOES: a função tinha um único chamador, num ramo que as duas
+  únicas chamadas a get_candidate_locations tornavam inalcançável desde a
+  Fase 2. Não poupa memória nenhuma — é higiene de código, e está em
+  commit separado por isso mesmo.
+
+
+5. Nota sobre o scipy
+---------------------------
+- O scipy entra na árvore de dependências apenas via scikit-learn (a
+  limpeza pós-Fase 1, secção 11.2 do FASE1_DECISOES, já o tinha removido
+  dos requirements diretos, onde estava como dependência morta).
+- Relevante para a secção 6: remover o sklearn remove também o scipy, por
+  isso o ganho na imagem Docker da Fase 3 é maior do que os 90 MB de RSS
+  sugerem.
+
+
+6. Contingência: scikit-learn -> numpy no KNN (pré-autorizada, não executada)
+----------------------------------------------------------------------------
+- O sklearn custa 90.5 MB de RSS (secção 3) e é usado num único ficheiro,
+  tools/knn_ranking.py, apenas por NearestNeighbors e MinMaxScaler.
+  Depois de o torch sair, passa a ser ~23% do orçamento de 400 MB.
+- DECISÃO: fica FORA do âmbito desta fase, mas pré-autorizado como
+  contingência com gatilho objetivo — a troca só se executa se o Passo 5
+  falhar, isto é, RSS estacionário >= 400 MB OU pico medido > 450 MB. Não
+  dispara "por precaução" nem por a margem parecer pequena.
+- Se o Passo 5 passar, a troca NÃO acontece nesta fase e fica registada
+  aqui como a primeira opção documentada caso a Fase 4 sofra OOM na
+  prática — pendência conhecida, não problema resolvido.
+- Se disparar, o critério de aceitação é paridade EXATA (mesma ordenação e
+  scores idênticos até ~1e-9 sobre os mesmos inputs, validado por teste):
+  MinMaxScaler + distância euclidiana são aritmética determinística, e
+  "parecido" seria um bug, não uma aproximação aceitável.
+- Substituir a biblioteca não substitui o algoritmo: continua a ser KNN,
+  implementado em numpy. O README e a documentação continuam a dizer
+  CSP, A*, KNN.

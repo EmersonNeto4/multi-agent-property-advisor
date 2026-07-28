@@ -1,12 +1,16 @@
 """
-Testes unitários de tools/semantic_search.py. O embedder (SentenceTransformer)
-e o ChromaDB são ambos mockados - nenhum teste aqui descarrega/carrega o
-modelo real, faz chamadas de rede, ou toca no ChromaDB real (que mantém as
-coleções registadas por nome dentro do mesmo processo, mesmo em modo
-"ephemeral" - reutilizar o real entre testes dava "Collection already
-exists"). Para um teste com embeddings e índice reais (marcado slow,
-excluído da execução default), ver tests/test_semantic_search_slow.py.
+Testes unitários de tools/semantic_search.py. Só o embedder
+(SentenceTransformer) é mockado - nenhum teste aqui descarrega/carrega o
+modelo real nem faz chamadas de rede. Para um teste com embeddings reais
+(marcado slow, excluído da execução default), ver
+tests/test_semantic_search_slow.py.
+
+Desde a Fase 2.5 não há nada a mockar do lado do índice: a pesquisa é uma
+multiplicação matriz-vetor com numpy sobre os embeddings em memória, por isso
+os testes exercitam a pesquisa a sério e não um substituto dela.
 """
+
+import json
 
 import numpy as np
 import pytest
@@ -37,35 +41,8 @@ class FakeSentenceTransformer:
         return np.array(vectors)
 
 
-class FakeCollection:
-    """Faz nearest-neighbor real (numpy) sobre os embeddings fake - suficiente
-    para os testes verificarem ordenação/formato sem depender do ChromaDB real."""
-
-    def __init__(self):
-        self._ids = []
-        self._embeddings = None
-
-    def add(self, ids, documents, embeddings):
-        self._ids = list(ids)
-        self._embeddings = np.array(embeddings)
-
-    def query(self, query_embeddings, n_results):
-        query_emb = np.array(query_embeddings[0])
-        sims = self._embeddings @ query_emb  # embeddings normalizados -> cosseno
-        order = np.argsort(-sims)[:n_results]
-        ids = [self._ids[i] for i in order]
-        distances = [1.0 - float(sims[i]) for i in order]
-        return {"ids": [ids], "distances": [distances]}
-
-
-class FakeChromaClient:
-    def create_collection(self, name, metadata=None):
-        return FakeCollection()
-
-
 def _mock_embedder(monkeypatch, sentence_transformer_cls=FakeSentenceTransformer):
     monkeypatch.setattr("sentence_transformers.SentenceTransformer", sentence_transformer_cls)
-    monkeypatch.setattr("chromadb.EphemeralClient", FakeChromaClient)
 
 
 @pytest.fixture(autouse=True)
@@ -78,7 +55,8 @@ def reset_singleton():
     """
     def _reset():
         semantic_search._model = None
-        semantic_search._collection = None
+        semantic_search._ids = []
+        semantic_search._embeddings = None
         semantic_search._num_docs = 0
         semantic_search._load_failed = False
 
@@ -105,6 +83,39 @@ def test_query_returns_sorted_similarity_tuples(monkeypatch):
 
     similarities = [s for _, s in results]
     assert similarities == sorted(similarities, reverse=True)
+
+
+def test_query_similarities_are_the_cosine_of_the_embeddings(monkeypatch):
+    """
+    A similaridade devolvida tem de ser o cosseno entre a query e o documento,
+    calculado aqui de forma independente do módulo. É o teste que substitui o
+    antigo FakeCollection: antes verificava-se que o módulo falava
+    corretamente com o ChromaDB; agora verifica-se a própria aritmética da
+    pesquisa, que passou a ser nossa.
+    """
+    _mock_embedder(monkeypatch)
+
+    text = "zona sossegada"
+    results = semantic_search.query(text, top_k=42)
+
+    expected_query_vec = FakeSentenceTransformer(semantic_search.MODEL_NAME).encode([text])[0]
+    embeddings_by_id = dict(zip(semantic_search._ids, semantic_search._embeddings))
+
+    for location_id, similarity in results:
+        expected = float(embeddings_by_id[location_id] @ expected_query_vec)
+        assert similarity == pytest.approx(max(0.0, expected), abs=1e-6)
+
+
+def test_all_descriptions_are_indexed(monkeypatch):
+    _mock_embedder(monkeypatch)
+    semantic_search.is_available()
+
+    with open(semantic_search.DESCRIPTIONS_PATH, "r", encoding="utf-8") as f:
+        descriptions = json.load(f)
+
+    assert semantic_search._num_docs == len(descriptions)
+    assert semantic_search._ids == list(descriptions.keys())
+    assert semantic_search._embeddings.shape[0] == len(descriptions)
 
 
 def test_query_respects_top_k(monkeypatch):
