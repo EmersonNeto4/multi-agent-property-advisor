@@ -1,0 +1,146 @@
+{
+  "label": "baseline-torch-cpu",
+  "generated_at": "2026-07-28T20:25:16+0000",
+  "environment": {
+    "python": "3.12.13",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+    "machine": "x86_64",
+    "processor": ""
+  },
+  "versions": {
+    "numpy": "2.5.1",
+    "scikit-learn": "1.9.0",
+    "scipy": "1.18.0",
+    "fastapi": "0.140.13",
+    "autogen-agentchat": "0.5.7",
+    "chromadb": "1.5.9",
+    "sentence-transformers": "5.6.1",
+    "torch": "2.13.0+cpu",
+    "onnxruntime": "1.28.0",
+    "tokenizers": "0.22.2"
+  },
+  "demo_query": "zona sossegada e autêntica",
+  "stages": [
+    {
+      "stage": "baseline",
+      "status": "ok",
+      "note": "interpretador + stdlib",
+      "rss_bytes": 13762560,
+      "peak_bytes": null,
+      "max_rss_bytes": 18018304,
+      "duration_s": 0.0,
+      "skipped_before": [],
+      "delta_bytes": null
+    },
+    {
+      "stage": "numpy",
+      "status": "ok",
+      "note": "2.5.1",
+      "rss_bytes": 33169408,
+      "peak_bytes": null,
+      "max_rss_bytes": 33198080,
+      "duration_s": 0.344,
+      "skipped_before": [],
+      "delta_bytes": 19406848
+    },
+    {
+      "stage": "sklearn",
+      "status": "ok",
+      "note": "1.9.0",
+      "rss_bytes": 130637824,
+      "peak_bytes": null,
+      "max_rss_bytes": 130637824,
+      "duration_s": 1.633,
+      "skipped_before": [],
+      "delta_bytes": 97468416
+    },
+    {
+      "stage": "app",
+      "status": "ok",
+      "note": "api.main importado",
+      "rss_bytes": 194662400,
+      "peak_bytes": null,
+      "max_rss_bytes": 194662400,
+      "duration_s": 2.604,
+      "skipped_before": [],
+      "delta_bytes": 64024576
+    },
+    {
+      "stage": "chromadb",
+      "status": "ok",
+      "note": "1.5.9",
+      "rss_bytes": 213676032,
+      "peak_bytes": null,
+      "max_rss_bytes": 213676032,
+      "duration_s": 0.758,
+      "skipped_before": [],
+      "delta_bytes": 19013632
+    },
+    {
+      "stage": "onnxruntime",
+      "status": "ok",
+      "note": "1.28.0",
+      "rss_bytes": 226152448,
+      "peak_bytes": null,
+      "max_rss_bytes": 226152448,
+      "duration_s": 0.03,
+      "skipped_before": [],
+      "delta_bytes": 12476416
+    },
+    {
+      "stage": "torch",
+      "status": "ok",
+      "note": "2.13.0+cpu",
+      "rss_bytes": 412659712,
+      "peak_bytes": null,
+      "max_rss_bytes": 412659712,
+      "duration_s": 1.635,
+      "skipped_before": [],
+      "delta_bytes": 186507264
+    },
+    {
+      "stage": "model_load",
+      "status": "ok",
+      "note": "sentence-transformers: paraphrase-multilingual-MiniLM-L12-v2",
+      "rss_bytes": 1181495296,
+      "peak_bytes": 1227689984,
+      "max_rss_bytes": 1227952128,
+      "duration_s": 13.32,
+      "skipped_before": [],
+      "delta_bytes": 768835584
+    },
+    {
+      "stage": "encode_docs",
+      "status": "ok",
+      "note": "42 documentos, shape=(42, 384)",
+      "rss_bytes": 1294684160,
+      "peak_bytes": 1294684160,
+      "max_rss_bytes": 1294684160,
+      "duration_s": 2.451,
+      "skipped_before": [],
+      "delta_bytes": 113188864
+    },
+    {
+      "stage": "encode_query",
+      "status": "ok",
+      "note": "query='zona sossegada e autêntica', shape=(1, 384)",
+      "rss_bytes": 1295650816,
+      "peak_bytes": 1295650816,
+      "max_rss_bytes": 1295650816,
+      "duration_s": 0.03,
+      "skipped_before": [],
+      "delta_bytes": 966656
+    },
+    {
+      "stage": "steady",
+      "status": "ok",
+      "note": "após gc.collect() + 2 s",
+      "rss_bytes": 1295294464,
+      "peak_bytes": null,
+      "max_rss_bytes": 1295294464,
+      "duration_s": 2.275,
+      "skipped_before": [],
+      "delta_bytes": -356352
+    }
+  ]
+}
