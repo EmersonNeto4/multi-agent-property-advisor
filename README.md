@@ -8,6 +8,8 @@ Groq API e dados reais da API do Idealista.
 
 A aplicação é composta por uma **API REST (FastAPI)** que expõe o sistema
 multi-agente, e um **frontend próprio (HTML/CSS/JS puro)** que a consome.
+O Location Agent usa **RAG com embeddings semânticos** para interpretar
+descrições de ambiente em linguagem natural (ver secção 6).
 
 
 ## 1. Requisitos
@@ -48,6 +50,14 @@ uvicorn api.main:app --reload
 A interface fica acessível em **http://localhost:8000** — a mesma porta
 serve o frontend estático e a API (`/api/...`).
 
+> **Primeiro arranque:** na primeira query que descreva um ambiente
+> (ex: "zona sossegada"), o modelo de embeddings do RAG (~420 MB) é
+> descarregado do Hugging Face e fica em cache local
+> (`~/.cache/huggingface`). Só acontece uma vez por máquina; nos
+> arranques seguintes é carregado a partir da cache. O arranque do
+> `uvicorn` em si não é afetado — o modelo é carregado à primeira
+> utilização, não no startup (ver secção 6).
+
 
 ## 3. Como usar
 
@@ -82,37 +92,106 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-Os testes (`tests/test_api.py`) usam `fastapi.testclient.TestClient` e não
-fazem chamadas reais à Groq nem ao Idealista — o sistema multi-agente é
-mocked e o `model_client` do lifespan é substituído via
-`app.dependency_overrides`. Correm sem `.env` nem chaves de API (é o que o
-GitHub Actions da Fase 3 vai executar).
+Nenhum teste faz chamadas reais à Groq, ao Idealista ou ao Hugging Face, e
+todos correm sem `.env` nem chaves de API (é o que o GitHub Actions da
+Fase 3 vai executar):
+
+- `tests/test_api.py` — endpoints, via `fastapi.testclient.TestClient`. O
+  sistema multi-agente é mocked e o `model_client` do lifespan é
+  substituído via `app.dependency_overrides`.
+- `tests/test_semantic_search.py` — módulo de retrieval, com o modelo de
+  embeddings e o ChromaDB mocked (sem download).
+- `tests/test_location_search.py` — integração do retrieval em
+  `find_best_locations`.
+
+Há ainda um teste de integração com o **modelo de embeddings real**,
+marcado `slow` e excluído da execução por omissão (`pytest` sozinho já não
+o corre). Para o executar explicitamente — descarrega o modelo se ainda
+não estiver em cache:
+
+```bash
+pytest -m slow
+```
 
 
-## 6. Notas rápidas
+## 6. RAG — retrieval semântico no Location Agent
+
+O Location Agent traduz descrições de ambiente em linguagem natural
+("zona sossegada", "perto do oceano") para localizações concretas. Até à
+Fase 1 isso era feito por um dicionário de ~18 palavras-chave
+hardcoded: qualquer sinónimo fora da lista falhava em silêncio — "pacato"
+não encontrava "tranquilo", "perto do oceano" não encontrava "costeiro".
+
+A Fase 2 substituiu esse mapeamento por **retrieval semântico**:
+
+- Cada uma das 42 localizações tem uma descrição textual em português
+  (`data/portugal_locations_descriptions.json`), gerada por template
+  determinístico a partir do dataset — regenerável com
+  `python scripts/generate_descriptions.py`.
+- Essas descrições são indexadas num **ChromaDB em memória**, usando
+  embeddings do modelo multilingue **`paraphrase-multilingual-MiniLM-L12-v2`**
+  (`sentence-transformers`), escolhido após benchmark contra
+  `multilingual-e5-small` e `mpnet-base-v2`.
+- A descrição de ambiente do utilizador é comparada por similaridade de
+  cosseno com as 42 descrições, e o resultado alimenta o
+  `characteristics_score` de cada localização.
+
+O que **não** mudou: a resolução de nomes de sítios. Se o utilizador diz
+"Algarve" ou "Lisboa", isso continua a ser um filtro geográfico
+exato/fuzzy — o RAG só interpreta o *ambiente*, não a geografia.
+
+Se o modelo não estiver disponível (sem rede e sem cache), o sistema
+degrada para ignorar a descrição de ambiente em vez de falhar.
+
+O efeito, com duas queries iguais em tudo menos no ambiente pedido:
+
+| Query (Algarve, T2, 300k) | Top 3 |
+|---|---|
+| ...zona **sossegada e autêntica** | Olhão, **Tavira**, Albufeira |
+| ...zona **vibrante com vida noturna** | **Albufeira**, Olhão, Faro |
+
+Nenhuma destas palavras existia no mapeamento antigo — com ele, as duas
+queries devolveriam a mesma ordenação. As decisões, o benchmark completo
+e os problemas encontrados estão em
+[docs/FASE2_DECISOES.txt](docs/FASE2_DECISOES.txt).
+
+
+## 7. Notas rápidas
 
 - Chamadas ao Groq podem ocasionalmente dar rate-limit — a API devolve
   `503` nesse caso, com uma mensagem a pedir para tentar novamente.
 - Nunca commitar o `.env` (já está no `.gitignore`) — as chaves de API são
   segredos, não valores por defeito no código.
+- O modelo de embeddings ocupa memória assinalável quando carregado
+  (~800 MB de RSS, sobretudo por causa do runtime do PyTorch). Não é
+  problema em desenvolvimento local, mas é um constrangimento conhecido
+  para o deploy da Fase 4 em free tiers — as opções de mitigação estão
+  analisadas na secção 5 de
+  [docs/FASE2_DECISOES.txt](docs/FASE2_DECISOES.txt).
+- A API do Idealista devolve `406` de forma consistente (bloqueio externo,
+  diagnosticado na secção 10 de
+  [docs/FASE1_DECISOES.txt](docs/FASE1_DECISOES.txt)). O sistema trata a
+  falha e devolve 0 imóveis; o pipeline de agentes e o RAG funcionam
+  normalmente.
 
 
-## 7. Estrutura do projeto
+## 8. Estrutura do projeto
 
 ```
 api/            # FastAPI: endpoints, schemas Pydantic, lifespan do model_client
 frontend/       # HTML/CSS/JS puro, servido pela própria API
 agents/         # Definição dos 5 agentes AutoGen
-tools/          # CSP, A*, KNN, cliente Idealista, dados de localização
+tools/          # CSP, A*, KNN, cliente Idealista, retrieval semântico, dados
 models/         # UserPreferences (Pydantic)
 utils/          # Configuração e criação do model client
+scripts/        # Geração das descrições das localizações (dados do RAG)
 tests/          # Testes automatizados (pytest)
 main.py         # Orquestração do team (run_property_recommendation_system)
 docs/           # Registo de decisões técnicas por fase + relatório académico (PDF)
 ```
 
 
-## 8. Roadmap
+## 9. Roadmap
 
 Este projeto segue um roadmap em 4 fases, focado em demonstrar competências
 de engenharia/deployment além do algoritmo de recomendação em si:
@@ -121,16 +200,20 @@ de engenharia/deployment além do algoritmo de recomendação em si:
   frontend próprio. Ver [docs/FASE1_DECISOES.txt](docs/FASE1_DECISOES.txt)
   para as decisões técnicas tomadas (secção 11 regista as correções de
   dívida técnica feitas depois da Fase 1, antes de arrancar a Fase 3).
-- **Fase 2** — substituir o mapeamento por keywords no Location Agent por
-  RAG com embeddings semânticos (sentence-transformers + Chroma).
+- **Fase 2 (concluída)** — substituído o mapeamento por keywords no
+  Location Agent por RAG com embeddings semânticos (sentence-transformers
+  + Chroma) — ver secção 6 e
+  [docs/FASE2_DECISOES.txt](docs/FASE2_DECISOES.txt), que inclui o
+  benchmark de modelos e o consumo de memória medido (relevante para a
+  Fase 4).
 - **Fase 3** — Dockerização com docker-compose + CI/CD via GitHub Actions.
   A estrutura atual (API e frontend como componentes separados, config via
-  `.env`, testes em `tests/`) já está preparada para isto sem alterações
-  estruturais.
+  `.env`, testes em `tests/` com os lentos já excluídos por omissão) já
+  está preparada para isto sem alterações estruturais.
 - **Fase 4** — Deploy em Render/Railway com demo live.
 
 
-## 9. Atribuição
+## 10. Atribuição
 
 Projeto desenvolvido originalmente em coautoria com **Gonçalo Bento**, no
 âmbito da unidade curricular de IARP (2025/2026), FCTUC. Este repositório

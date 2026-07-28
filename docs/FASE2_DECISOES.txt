@@ -264,22 +264,35 @@ com a maior margem, e é o mais leve e mais rápido dos 3 testados.
 
 8. Queries para a demo da Fase 4
 --------------------------------------
-Testadas end-to-end (uvicorn + .env reais) durante o Passo 3. As duas
-primeiras mostram bem o ganho do RAG sem tropeçar no problema da secção 7
-(Planner extrai location e environment_type corretamente); a terceira é
-um exemplo do problema conhecido, para referência/contraste.
+Todas testadas end-to-end (uvicorn + .env reais). As duas primeiras
+formam um PAR de demonstração e são as recomendadas; a terceira é um
+exemplo do problema conhecido da secção 7, para referência/contraste.
 
-    - "Quero um apartamento T2 no Algarve, numa zona sossegada e
-      autêntica, com orçamento até 300 mil euros." - Planner extrai
-      location="Algarve", environment_type="sossegada e autêntica"
-      corretamente. Resultado: Olhão (0.583), Tavira (0.570), Albufeira
-      (0.552), Faro (0.544), Portimão (0.538) - Tavira à frente de
-      Albufeira, o critério de aceitação da fase. BOA para demo.
-    - Variante sugerida (não testada ainda, mas mesma estrutura de
-      frase): "Quero uma casa em Lisboa, num ambiente vibrante e com vida
-      noturna" - testa o oposto (favorecer Albufeira/Lisboa-vibrante em
-      vez de sítios calmos), útil para mostrar que o RAG discrimina nos
-      dois sentidos, não só "calmo vence sempre".
+PAR RECOMENDADO PARA A DEMO - duas queries idênticas em tudo (mesma
+região, mesmo orçamento, mesma tipologia) exceto na descrição de
+ambiente. Mostram que o retrieval semântico discrimina nos DOIS
+sentidos, e não que "calmo ganha sempre":
+
+    (a) "Quero um apartamento T2 no Algarve, numa zona sossegada e
+        autêntica, com orçamento até 300 mil euros."
+        -> Olhão (0.583), Tavira (0.570), Albufeira (0.552),
+           Faro (0.544), Portimão (0.538)
+
+    (b) "Quero um apartamento T2 no Algarve, numa zona vibrante com
+        muita vida noturna, com orçamento até 300 mil euros."
+        -> Albufeira (0.645), Olhão (0.592), Faro (0.584),
+           Portimão (0.577), Tavira (0.570)
+
+    Leitura: a Albufeira (tags "vida noturna"/"vibrante") passa de 3º
+    (0.552) para 1º (0.645) quando o ambiente pedido muda de "sossegada"
+    para "vibrante"; a Tavira (tags "tranquilo"/"autêntico") faz o
+    percurso inverso, de 2º para último. Nenhuma das palavras "sossegada",
+    "autêntica" ou "vida noturna" existia no keyword_mapping antigo -
+    com ele, ambas as queries teriam devolvido exatamente a mesma
+    ordenação. É a demonstração mais direta do ganho desta fase.
+    Nota: em (a) o Planner extrai environment_type="sossegada e
+    autêntica" e em (b) "vibrante" - em ambos os casos com
+    location="Algarve" correto (sem tropeçar no problema da secção 7).
     - "Procuro uma casa T3 num sítio pacato, perto do oceano, orçamento
       até 350 mil euros." - Planner extrai location="perto do oceano"
       (incorretamente, ver secção 7) e environment_type="pacato"
@@ -288,3 +301,84 @@ um exemplo do problema conhecido, para referência/contraste.
       é uma demo menos direta de ler. EVITAR nesta forma para a demo, ou
       usar precisamente para ilustrar o problema da secção 7 se for esse
       o objetivo.
+
+
+9. Decisões de teste (Passo 4)
+------------------------------------
+- Três ficheiros, com âmbitos deliberadamente separados:
+    * tests/test_semantic_search.py - unitários do módulo de retrieval,
+      tudo mockado (sem rede, sem download, sem modelo real).
+    * tests/test_semantic_search_slow.py - integração com o modelo REAL,
+      marcado @pytest.mark.slow.
+    * tests/test_location_search.py - a lógica de integração em
+      find_best_locations (sentinela, uso da similaridade), com a
+      pesquisa semântica/clima/LLM mockados.
+- Foi preciso mockar TAMBÉM o ChromaDB nos unitários, não só o
+  SentenceTransformer. Motivo (encontrado a correr os testes, não
+  antecipado): o chromadb.EphemeralClient() mantém as coleções
+  registadas por nome dentro do mesmo processo Python, por isso o 2º
+  teste a construir o índice rebentava com "Collection
+  [portugal_locations] already exists". FakeCollection faz o
+  nearest-neighbor com numpy (cosseno sobre os embeddings fake), o que
+  mantém os testes a verificar ordenação/formato a sério em vez de
+  devolverem valores fixos.
+- Fixture autouse a repor o singleton de módulo (_model, _collection,
+  _num_docs, _load_failed) entre testes: sem isso, o teste do fallback
+  (que deixa _load_failed=True) contaminaria todos os testes seguintes,
+  e vice-versa.
+- O teste slow usa a query "praia e costa", NÃO "perto do mar". Motivo:
+  o benchmark da secção 2/3 mostrou que "perto do mar" traz por vezes
+  localizações de interior para o top 5 (ex: Viseu) - é um sinal
+  genuinamente mais ruidoso neste modelo. Um teste que falhasse por
+  causa disso estaria a testar uma limitação conhecida e documentada do
+  modelo, não uma regressão do nosso código. A asserção é feita contra
+  as tags reais de data/portugal_locations.json (nenhuma localização com
+  "interior"/"montanha" no top 5), não contra uma lista fixa de IDs -
+  assim continua válida se o dataset crescer.
+- pyproject.toml (ficheiro novo, o projeto não tinha nenhuma config de
+  pytest): regista o marker "slow" e põe addopts = -m "not slow". Assim
+  `pytest` sozinho já exclui os lentos por omissão, sem depender de quem
+  corre se lembrar da flag - relevante para o CI da Fase 3. Correr os
+  lentos é explícito: `pytest -m slow`.
+- Confirmado no fecho da fase: `pytest` passa 17/17 (1 deselected) a
+  partir da raiz E a partir de outro diretório com o .env renomeado
+  (sem chaves de API nenhumas no ambiente); `pytest -m slow` passa 1/1
+  com o modelo real.
+
+
+10. Resumo do que mudou nesta fase
+----------------------------------------
+Ficheiros novos:
+    data/portugal_locations_descriptions.json  descrições das 42
+                                               localizações (dado estático)
+    scripts/generate_descriptions.py           gerador dessas descrições
+    tools/semantic_search.py                   módulo de retrieval
+    tests/test_semantic_search.py              unitários (mocked)
+    tests/test_semantic_search_slow.py         integração (modelo real)
+    tests/test_location_search.py              sentinela + uso da similaridade
+    pyproject.toml                             config do pytest (marker slow)
+    docs/FASE2_DECISOES.txt                    este ficheiro
+
+Ficheiros alterados:
+    tools/location_search.py    keyword_mapping removido; passa a usar
+                                semantic_search; characteristics_score
+                                passa a ser parâmetro de evaluate_location
+    requirements.txt            + sentence-transformers, chromadb (versões
+                                fixadas: estas libs partem APIs com
+                                frequência); - requests, aiohttp, pandas,
+                                scipy (dependências mortas, zero imports)
+    README.md                   secção 6 (RAG), nota do download no
+                                primeiro arranque, testes, roadmap
+
+NÃO alterados (deliberadamente): agents/*, tools/csp_solver.py,
+tools/astar_property.py, tools/knn_ranking.py, tools/data_loader.py,
+api/*, frontend/*, main.py. A assinatura pública de
+find_best_locations/find_locations_wrapper manteve-se, por isso o
+Location Agent não precisou de nenhuma alteração.
+
+Fica por fazer (registado nas secções acima, fora do âmbito):
+    - RAM do modelo em free tier (secção 5) -> Fase 4.
+    - Extração do Planner confunde ambiente com localização (secção 7)
+      -> fase 2.5 ou preparação da demo.
+    - filter_locations_by_characteristics deixa de ser percorrida a
+      partir do fluxo principal (secção 1) -> limpeza futura.
