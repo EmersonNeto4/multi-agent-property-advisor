@@ -232,13 +232,12 @@ async def find_best_locations(
         # só no scoring de characteristics_score mais abaixo.
         candidates = get_candidate_locations(
             location_hint=location_hint,
-            environment_keywords=None,
             max_results=max_candidates
         )
     elif environment_type and similarity_by_id:
         # Sem location_hint: os candidatos são as localizações mais
-        # similares semanticamente a environment_type, em vez do antigo
-        # filter_locations_by_characteristics por keywords.
+        # similares semanticamente a environment_type (na Fase 1 era um
+        # filtro por keywords sobre as tags, removido na Fase 2).
         locations_by_id = {loc['id']: loc for loc in get_all_locations()}
         ranked_ids = sorted(similarity_by_id, key=similarity_by_id.get, reverse=True)
         candidates = [locations_by_id[loc_id] for loc_id in ranked_ids if loc_id in locations_by_id][:max_candidates]
@@ -248,7 +247,6 @@ async def find_best_locations(
         # mais populosas primeiro.
         candidates = get_candidate_locations(
             location_hint=None,
-            environment_keywords=None,
             max_results=max_candidates
         )
 

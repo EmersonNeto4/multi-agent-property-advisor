@@ -44,42 +44,6 @@ def filter_locations_by_region(nuts_ii: str) -> List[Dict]:
     return [loc for loc in locations if loc['nuts_ii'] == nuts_ii]
 
 
-def filter_locations_by_characteristics(
-    characteristics: List[str],
-    min_matches: int = 1
-) -> List[Dict]:
-    """
-    Filtra localizações que têm pelo menos min_matches das características especificadas.
-    
-    Args:
-        characteristics: Lista de características desejadas (ex: ["costeiro", "tranquilo"])
-        min_matches: Número mínimo de características que devem coincidir
-        
-    Returns:
-        Lista de localizações que correspondem aos critérios
-        
-    Example:
-        >>> locs = filter_locations_by_characteristics(["costeiro", "praia"], min_matches=2)
-    """
-    locations = get_all_locations()
-    filtered = []
-    
-    for loc in locations:
-        loc_chars = set(loc['characteristics'])
-        search_chars = set(characteristics)
-        matches = len(loc_chars.intersection(search_chars))
-        
-        if matches >= min_matches:
-            filtered.append({
-                **loc,
-                'matches': matches  # Adicionar score de matches
-            })
-    
-    # Ordenar por número de matches (descendente)
-    filtered.sort(key=lambda x: x['matches'], reverse=True)
-    return filtered
-
-
 def find_location_by_name(name: str) -> Optional[Dict]:
     """
     Encontra uma localização pelo nome exato.
@@ -147,28 +111,24 @@ def get_locations_by_population_range(
 
 def get_candidate_locations(
     location_hint: Optional[str] = None,
-    environment_keywords: Optional[List[str]] = None,
     max_results: int = 10
 ) -> List[Dict]:
     """
-    Obtém lista de localizações candidatas baseadas em hints do utilizador.
-    
+    Obtém lista de localizações candidatas a partir do nome/região mencionado
+    pelo utilizador. Resolve apenas geografia — a adequação ao ambiente pedido
+    é tratada pelo retrieval semântico (tools/semantic_search.py).
+
     Esta é a função principal para o Location Agent usar.
-    
+
     Args:
         location_hint: Nome ou região mencionada pelo utilizador (ex: "Coimbra", "Norte")
-        environment_keywords: Palavras-chave do ambiente desejado (ex: ["tranquilo", "costeiro"])
         max_results: Número máximo de candidatos a retornar
-        
+
     Returns:
         Lista de localizações candidatas ordenadas por relevância
-        
+
     Example:
-        >>> candidates = get_candidate_locations(
-        ...     location_hint="Lisboa",
-        ...     environment_keywords=["costeiro", "vibrante"],
-        ...     max_results=5
-        ... )
+        >>> candidates = get_candidate_locations(location_hint="Lisboa", max_results=5)
     """
     candidates = []
     
@@ -191,14 +151,7 @@ def get_candidate_locations(
                 candidates.extend(filter_locations_by_region(region))
                 break
     
-    # Caso 2: Filtrar por características de ambiente
-    if environment_keywords and not candidates:
-        candidates = filter_locations_by_characteristics(
-            environment_keywords,
-            min_matches=1
-        )
-    
-    # Caso 3: Sem hints específicos - retornar localizações principais
+    # Caso 2: Sem hints específicos - retornar localizações principais
     if not candidates:
         all_locs = get_all_locations()
         # Priorizar cidades maiores

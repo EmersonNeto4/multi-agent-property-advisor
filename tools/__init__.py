@@ -2,7 +2,7 @@ from .weather import (get_weather_data, get_location_coordinates as geocode_loca
                           analyze_weather_with_llm, analyze_weather_for_environment)
 
 from .data_loader import (load_portugal_locations, get_all_locations, filter_locations_by_region,
-    filter_locations_by_characteristics, find_location_by_name, find_locations_fuzzy,
+    find_location_by_name, find_locations_fuzzy,
     get_locations_by_population_range, get_candidate_locations, get_location_coordinates)
 
 from .idealista_client import (search_properties_by_coordinates,search_properties_by_location_id, get_location_id_for_city, parse_idealista_property)
@@ -29,7 +29,6 @@ __all__ = [
     'load_portugal_locations',
     'get_all_locations',
     'filter_locations_by_region',
-    'filter_locations_by_characteristics',
     'find_location_by_name',
     'find_locations_fuzzy',
     'get_locations_by_population_range',
