@@ -1,47 +1,49 @@
 from models import UserPreferences
 from tools import (
     get_candidate_locations,
+    get_all_locations,
     get_weather_data,
     analyze_weather_with_llm
 )
+from tools.semantic_search import query as semantic_query
 from typing import List, Dict, Optional
 import asyncio
+
+# Tem de bater com o default de environment_type em find_locations_wrapper
+# (agents/location.py chama-o sem environment_type quando o utilizador não
+# especifica um). Usado só para desligar a pesquisa semântica nesse caso -
+# ver o guard em find_best_locations. analyze_weather_with_llm continua a
+# receber este valor tal como antes desta fase (não mexe na análise climática).
+NO_PREFERENCE_SENTINEL = "equilibrado"
 
 
 async def evaluate_location(
     location: Dict,
     environment_type: Optional[str],
-    model_client
+    model_client,
+    characteristics_score: float = 0.5
 ) -> Dict:
     """
     Avalia uma localização e calcula score de adequação.
-    
+
     Args:
         location: Dicionário com informação da localização
         environment_type: Tipo de ambiente desejado pelo utilizador
         model_client: Cliente do modelo LLM
-        
+        characteristics_score: Similaridade semântica pré-calculada entre
+            environment_type e a descrição da localização (ver
+            tools/semantic_search.py), em [0, 1]. Default 0.5 quando não
+            há environment_type ou quando o retrieval semântico não está
+            disponível (ver find_best_locations) - mantém o score neutro
+            que já existia antes desta fase.
+
     Returns:
         Dicionário com localização e scores detalhados
     """
     # Obter coordenadas
     coords = location['coordinates']
     lat, lon = coords['latitude'], coords['longitude']
-    
-    # Score base a partir das características do dataset
-    characteristics_score = 0.5
-    
-    # Se o utilizador especificou environment_type, avaliar match de características
-    if environment_type:
-        env_keywords = environment_type.lower().split()
-        loc_characteristics = [c.lower() for c in location['characteristics']]
-        
-        # Contar quantas keywords aparecem nas características
-        matches = sum(1 for keyword in env_keywords if any(keyword in char for char in loc_characteristics))
-        
-        if matches > 0:
-            characteristics_score = min(0.5 + (matches * 0.15), 1.0)
-    
+
     # Obter dados climáticos e avaliar com LLM
     climate_score = 0.5
     weather_summary = "Dados climáticos não disponíveis"
@@ -209,55 +211,57 @@ async def find_best_locations(
     
     # 1. Obter candidatos do dataset
     print(f"\n Procurando candidatos no dataset...")
-    
-    # Extrair keywords do environment_type para filtro inicial
-    env_keywords = []
-    if environment_type:
-        env_lower = environment_type.lower()
-        # Mapear alguns termos comuns para características do dataset
-        keyword_mapping = {
-            'tranquilo': ['tranquilo'],
-            'calmo': ['tranquilo'],
-            'sossegado': ['tranquilo'],
-            'vibrante': ['vibrante', 'urbano'],
-            'animado': ['vibrante', 'urbano'],
-            'movimentado': ['vibrante', 'urbano'],
-            'praia': ['costeiro', 'praia'],
-            'mar': ['costeiro'],
-            'costa': ['costeiro'],
-            'costeiro': ['costeiro'],
-            'natureza': ['natureza'],
-            'verde': ['natureza'],
-            'rural': ['natureza', 'tranquilo'],
-            'montanha': ['montanha'],
-            'serra': ['montanha'],
-            'histórico': ['histórico'],
-            'cultural': ['cultural', 'histórico'],
-            'universitário': ['universitário', 'jovem']
-        }
-        
-        for term, chars in keyword_mapping.items():
-            if term in env_lower:
-                env_keywords.extend(chars)
-        
-        # Remover duplicados
-        env_keywords = list(set(env_keywords))
-    
-    candidates = get_candidate_locations(
-        location_hint=location_hint,
-        environment_keywords=env_keywords if env_keywords else None,
-        max_results=min(20, top_n * 4)  # Avaliar 4x mais candidatos
-    )
-    
+
+    max_candidates = min(20, top_n * 4)  # Avaliar 4x mais candidatos
+
+    # Similaridade semântica entre environment_type e a descrição de CADA
+    # localização (tools/semantic_search.py). top_k grande o suficiente para
+    # cobrir as 42 localizações do dataset: precisamos da similaridade de
+    # qualquer candidato que a filtragem geográfica (location_hint) venha a
+    # escolher, não só do top-K global. Lista vazia se environment_type for
+    # None OU se o modelo/índice não estiverem disponíveis (ver
+    # semantic_search.is_available()) - em ambos os casos degrada-se para
+    # características neutras (0.5), tratado abaixo.
+    similarity_by_id: Dict[str, float] = {}
+    if environment_type and environment_type.strip().lower() != NO_PREFERENCE_SENTINEL:
+        similarity_by_id = dict(semantic_query(environment_type, top_k=200))
+
+    if location_hint:
+        # location_hint continua a mandar na seleção geográfica (nome exato/
+        # fuzzy/região) - o retrieval semântico não participa nesta escolha,
+        # só no scoring de characteristics_score mais abaixo.
+        candidates = get_candidate_locations(
+            location_hint=location_hint,
+            environment_keywords=None,
+            max_results=max_candidates
+        )
+    elif environment_type and similarity_by_id:
+        # Sem location_hint: os candidatos são as localizações mais
+        # similares semanticamente a environment_type, em vez do antigo
+        # filter_locations_by_characteristics por keywords.
+        locations_by_id = {loc['id']: loc for loc in get_all_locations()}
+        ranked_ids = sorted(similarity_by_id, key=similarity_by_id.get, reverse=True)
+        candidates = [locations_by_id[loc_id] for loc_id in ranked_ids if loc_id in locations_by_id][:max_candidates]
+    else:
+        # Nem location_hint nem environment_type (ou retrieval semântico
+        # indisponível): mesmo fallback que já existia - localizações
+        # mais populosas primeiro.
+        candidates = get_candidate_locations(
+            location_hint=None,
+            environment_keywords=None,
+            max_results=max_candidates
+        )
+
     print(f" Encontrados {len(candidates)} candidatos para avaliar")
-    
+
     # 2. Avaliar cada candidato
     print(f"\ Avaliando candidatos...")
     evaluated = []
-    
+
     for i, candidate in enumerate(candidates, 1):
         print(f"  [{i}/{len(candidates)}] Avaliando {candidate['name']}...")
-        result = await evaluate_location(candidate, environment_type, model_client)
+        characteristics_score = similarity_by_id.get(candidate['id'], 0.5)
+        result = await evaluate_location(candidate, environment_type, model_client, characteristics_score)
         evaluated.append(result)
         await asyncio.sleep(0.3)  # Pequena pausa
     

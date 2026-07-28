@@ -1,11 +1,7 @@
-requests
-aiohttp
 pydantic
 numpy
 scikit-learn
-pandas
 geopy
-scipy
 python-dotenv
 autogen-agentchat==0.5.7
 autogen-ext[openai]==0.5.7
@@ -13,3 +9,5 @@ openai
 httpx
 fastapi
 uvicorn[standard]
+sentence-transformers==5.6.1
+chromadb==1.5.9
