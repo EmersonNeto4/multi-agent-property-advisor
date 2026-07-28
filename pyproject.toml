@@ -1,3 +1,11 @@
+# Metadados do projeto. Não há [build-system]: o projeto não é distribuído como
+# pacote instalável, esta tabela existe para declarar a versão de Python
+# suportada num sítio único e verificável (ver docs/FASE2.5_DECISOES.txt).
+[project]
+name = "multi-agent-property-advisor"
+version = "2.0.0"
+requires-python = ">=3.12,<3.13"
+
 [tool.pytest.ini_options]
 markers = [
     "slow: testes de integracao com embeddings reais (descarrega e usa o modelo de sentence-transformers) - excluidos da execucao default, ver README.md",
